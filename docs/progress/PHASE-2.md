@@ -129,3 +129,13 @@ Context:     Contracts now v1.1 — openapi.json regenerated, check green.
         (Use it / Create new anyway paths; never a second 'Basmati Rice').
 - G2.6: e2e add-item-known.spec.ts, add-item-new.spec.ts,
         duplicate-guard.spec.ts green across both viewports.
+
+## 2026-11-15 — session close — platform note
+Pushed:     feat/p0/foundations (11 commits: P1 + P2) to origin; main
+            fast-forwarded aed98aa → f0071be and pushed; phase-1-complete and
+            phase-2-complete annotated tags pushed. This was the first full
+            CI exercise on the remote (G0.5).
+Decision:   A remote has existed since P0 but only ever received one push;
+            the "commits land directly on main" deviation (ADR-0001) is now
+            closed. From the next session on: one task card = one branch =
+            one PR (AGENTS §7), starting with P1.5/P3.
