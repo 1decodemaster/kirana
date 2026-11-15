@@ -1,0 +1,28 @@
+# dependencies / build output
+node_modules/
+dist/
+out/
+*.tsbuildinfo
+
+# data — never commit user data or databases
+data/
+*.db
+*.db-wal
+*.db-shm
+*.backup
+*.backup.gz
+
+# env & secrets
+.env
+.env.local
+
+# test artifacts
+coverage/
+test-results/
+playwright-report/
+.blob-report/
+playwright/.cache/
+
+# tooling noise
+.DS_Store
+*.log
