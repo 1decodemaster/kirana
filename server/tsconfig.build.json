@@ -5,6 +5,6 @@
     "rootDir": ".",
     "types": ["node"]
   },
-  "include": ["*.ts", "plugins/**/*.ts", "jobs/**/*.ts"],
+  "include": ["*.ts", "plugins/**/*.ts", "routes/**/*.ts", "services/**/*.ts", "jobs/**/*.ts"],
   "exclude": ["__tests__"]
 }

@@ -6,6 +6,9 @@ import fastifyStatic from '@fastify/static';
 import { healthResponseSchema } from '@kirana/shared';
 import type { AppConfig } from './config.js';
 import errorsPlugin from './plugins/errors.js';
+import dbPlugin from './plugins/db.js';
+import { apiRoutes } from './routes/api.js';
+import { openAppDatabase } from './db.js';
 
 export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
   const app = Fastify({
@@ -20,6 +23,13 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
   await app.register(cookie);
   await app.register(sensible);
 
+  // Registered before any routes so every subtree inherits the §7.1 envelope.
+  await app.register(errorsPlugin, { spaIndex: config.webDistDir !== undefined });
+
+  const database = openAppDatabase(config);
+  await app.register(dbPlugin, { database });
+  await app.register(apiRoutes, { prefix: '/api/v1' });
+
   if (config.webDistDir !== undefined) {
     await app.register(fastifyStatic, {
       root: config.webDistDir,
@@ -27,8 +37,6 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
       index: 'index.html',
     });
   }
-
-  await app.register(errorsPlugin, { spaIndex: config.webDistDir !== undefined });
 
   app.get('/healthz', async () => {
     return healthResponseSchema.parse({

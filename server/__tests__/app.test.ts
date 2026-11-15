@@ -12,12 +12,14 @@ import { buildApp } from '../app.js';
 import { ConfigError, loadConfig, type AppConfig } from '../config.js';
 import { httpError } from '../plugins/errors.js';
 import { startJobsWorker } from '../jobs/worker.js';
+import { MIGRATIONS_DIR } from './helpers.js';
 
 function makeConfig(overrides: Partial<AppConfig> = {}): AppConfig {
   return {
     port: 0,
     dataDir: '/tmp',
     databaseUrl: ':memory:',
+    migrationsDir: MIGRATIONS_DIR,
     appOrigin: 'http://localhost:8080',
     sessionSecret: 'test-secret',
     logLevel: 'fatal',
@@ -153,7 +155,8 @@ describe('static SPA serving when webDistDir is set', () => {
   });
 
   it('keeps JSON 404s for API-looking paths', async () => {
-    const res = await app.inject({ method: 'GET', url: '/api/v1/board' });
+    // /api/v1/board exists since P1; assert on a route that does not.
+    const res = await app.inject({ method: 'GET', url: '/api/v1/definitely-not-a-route' });
     expect(res.statusCode).toBe(404);
     const body = errorResponseSchema.parse(res.json());
     expect(body.error.code).toBe('NOT_FOUND');

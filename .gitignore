@@ -4,6 +4,10 @@ dist/
 out/
 *.tsbuildinfo
 
+# stray compiled artifacts must never shadow *.ts sources
+shared/src/**/*.js
+shared/src/**/*.js.map
+
 # data — never commit user data or databases
 data/
 *.db

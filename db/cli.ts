@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { openDatabase, defaultDatabaseUrl } from './connection.js';
 import { computeSchemaHash, loadMigrations, migrate } from './migrate.js';
 import { seedCategories, seedHouseholdCatalog } from './seed.js';
+import { seedDemoBoard } from './demo.js';
 
 function migrationsDir(): string {
   const override = process.env.KIRANA_MIGRATIONS_DIR;
@@ -16,7 +17,7 @@ function migrationsDir(): string {
 
 function usage(): never {
   console.error(
-    'usage: tsx cli.ts <migrate | seed-categories | seed-catalog --household <id> | reindex | hash-schema>',
+    'usage: tsx cli.ts <migrate | seed-categories | seed-catalog --household <id> | seed-demo | reindex | hash-schema>',
   );
   process.exit(2);
 }
@@ -48,6 +49,15 @@ try {
     case 'reindex': {
       db.exec("INSERT INTO item_search(item_search) VALUES('rebuild')");
       console.log('item_search rebuilt');
+      break;
+    }
+    case 'seed-demo': {
+      const result = seedDemoBoard(db, Date.now());
+      console.log(
+        result.skipped
+          ? 'demo data skipped (household already has stores)'
+          : `demo data: ${result.stores} stores, ${result.listItems} list items`,
+      );
       break;
     }
     case 'hash-schema': {

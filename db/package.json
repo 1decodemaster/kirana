@@ -8,6 +8,12 @@
     "migrations",
     "seed"
   ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -16,6 +22,7 @@
     "migrate": "tsx cli.ts migrate",
     "seed:categories": "tsx cli.ts seed-categories",
     "seed:catalog": "tsx cli.ts seed-catalog",
+    "seed:demo": "tsx cli.ts seed-demo",
     "reindex": "tsx cli.ts reindex"
   },
   "dependencies": {

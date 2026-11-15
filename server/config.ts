@@ -8,6 +8,7 @@ export interface AppConfig {
   readonly port: number;
   readonly dataDir: string;
   readonly databaseUrl: string;
+  readonly migrationsDir: string;
   readonly appOrigin: string;
   readonly sessionSecret: string;
   readonly logLevel: LogLevel;
@@ -35,6 +36,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     port,
     dataDir,
     databaseUrl,
+    migrationsDir: resolveMigrationsDir(env.KIRANA_MIGRATIONS_DIR),
     appOrigin,
     sessionSecret,
     logLevel: logLevel as LogLevel,
@@ -66,6 +68,18 @@ function resolveWebDistDir(override: string | undefined): string | undefined {
     if (existsSync(dir)) return dir;
   }
   return undefined;
+}
+
+function resolveMigrationsDir(override: string | undefined): string {
+  if (override !== undefined && override.length > 0) {
+    return path.resolve(override);
+  }
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  for (const rel of ['../db/migrations', '../../db/migrations', '../../../db/migrations']) {
+    const dir = path.resolve(here, rel);
+    if (existsSync(dir)) return dir;
+  }
+  throw new ConfigError('migrations directory not found (set KIRANA_MIGRATIONS_DIR)');
 }
 
 function readVersion(): string {
