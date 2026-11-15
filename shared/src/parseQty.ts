@@ -64,16 +64,20 @@ export function parseQty(input: string): ParsedQuantity | null {
 
 function grp(m: RegExpExecArray, i: number): string {
   const g = m[i];
+  /* v8 ignore next -- the grammar has no optional captures; guards future edits */
   if (g === undefined) throw new Error(`regex capture ${i} missing`);
   return g;
 }
 
 function build(qtyText: string, unitText: string, nameText: string): ParsedQuantity | null {
   const qty = Number(qtyText);
+  /* v8 ignore next -- the grammar only captures \d+(\.\d+)?, always finite */
   if (!Number.isFinite(qty) || qty <= 0) return null;
   const unit = UNIT_ALIASES[unitText.toLowerCase()];
+  /* v8 ignore next -- the unit alternations are exactly the UNIT_ALIASES keys */
   if (unit === undefined) return null;
   const name = nameText.replace(/\s+/g, ' ').trim();
+  /* v8 ignore next -- parseQty trims before matching, so names cannot be empty */
   if (name.length === 0) return null;
   return { name, qty, unit };
 }

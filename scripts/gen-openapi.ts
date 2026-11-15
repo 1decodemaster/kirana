@@ -188,6 +188,7 @@ const ENDPOINTS: readonly EndpointSpec[] = [
     params: [
       { name: 'q', location: 'query', schema: z.string().max(80) },
       { name: 'categoryId', location: 'query', schema: c.uuidSchema },
+      { name: 'storeId', location: 'query', schema: c.uuidSchema },
       { name: 'limit', location: 'query', schema: z.number().int().min(1).max(200) },
       { name: 'cursor', location: 'query', schema: z.string() },
     ],

@@ -90,6 +90,11 @@ export const categoryDtoSchema = z.object({
   color: colorSchema.nullable(),
   sortOrder: z.number().int(),
 });
+export const catalogStatsSchema = z.object({
+  timesAdded: z.number().int().nonnegative(),
+  lastAddedAt: epochMsSchema.nullable(),
+  storeIds: z.array(uuidSchema),
+});
 export const catalogItemDtoSchema = z.object({
   id: uuidSchema,
   name: itemNameSchema,
@@ -98,6 +103,9 @@ export const catalogItemDtoSchema = z.object({
   defaultUnit: unitCodeSchema.nullable(),
   defaultCategoryId: uuidSchema.nullable(),
   iconRef: z.string().max(16).nullable(),
+  /** §8.6 ranking signals (ADR-0002): present when the item has ever been
+   * added anywhere, so client and server rank identically. */
+  stats: catalogStatsSchema.optional(),
 });
 export const storeDtoSchema = z.object({
   id: uuidSchema,
@@ -216,6 +224,7 @@ export const itemDtoSchema = z.object({
 export const getItemsQuerySchema = z.object({
   q: z.string().max(80).optional(),
   categoryId: uuidSchema.optional(),
+  storeId: uuidSchema.optional(),
   limit: z.number().int().min(1).max(200).optional(),
   cursor: z.string().optional(),
 });

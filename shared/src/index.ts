@@ -4,4 +4,5 @@ export * from './parseQty.js';
 export * from './units.js';
 export * from './ids.js';
 export * from './categoryHints.js';
+export * from './search.js';
 export * from './contracts.js';

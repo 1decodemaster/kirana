@@ -753,6 +753,41 @@
                                 "type": "null"
                               }
                             ]
+                          },
+                          "stats": {
+                            "type": "object",
+                            "properties": {
+                              "timesAdded": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 9007199254740991
+                              },
+                              "lastAddedAt": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 9007199254740991
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "storeIds": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                                }
+                              }
+                            },
+                            "required": [
+                              "timesAdded",
+                              "lastAddedAt",
+                              "storeIds"
+                            ],
+                            "additionalProperties": false
                           }
                         },
                         "required": [
@@ -1797,6 +1832,41 @@
                               "type": "null"
                             }
                           ]
+                        },
+                        "stats": {
+                          "type": "object",
+                          "properties": {
+                            "timesAdded": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "lastAddedAt": {
+                              "anyOf": [
+                                {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 9007199254740991
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "storeIds": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                              }
+                            }
+                          },
+                          "required": [
+                            "timesAdded",
+                            "lastAddedAt",
+                            "storeIds"
+                          ],
+                          "additionalProperties": false
                         }
                       },
                       "required": [
@@ -3241,6 +3311,16 @@
           },
           {
             "name": "categoryId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            }
+          },
+          {
+            "name": "storeId",
             "in": "query",
             "required": false,
             "schema": {
