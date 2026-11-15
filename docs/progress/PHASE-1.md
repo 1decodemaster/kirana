@@ -94,11 +94,11 @@ Decisions:  (1) FAB opens the add-store sheet in P1 (the add-item sheet is
             P2 (needs the re-add endpoint; BACKLOG). (5) e2e port moved to
             8090: an unrelated container/server already binds 8080 on this
             machine.
-Deviations: compose re-verification blocked — a pre-existing container named
-            `kirana` (older build, started by another session, user lxd)
-            holds the name and port 8080; left untouched. Image verified via
-            `docker run` instead; `docker compose up` should be re-run when
-            that container is removed.
+Deviations: compose image tag moved from `kirana:local` to `kirana:local-node`
+            — the old tag is contended on this machine (another session's
+            Python stack retagged it mid-session; a container started from it
+            ran alembic migrations). Compose now verified live: healthz 200,
+            board serving, demo seed + mutation round-trip through :8080.
 Learned:    (a) Never filter a locator by the state the click changes
             (`[aria-checked="false"]` re-resolves to a different row after
             the optimistic flip). (b) Playwright `beforeAll` runs once per
