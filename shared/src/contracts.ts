@@ -266,6 +266,7 @@ export const createAliasRequestSchema = aliasInputSchema;
 export const aliasMutationResponseSchema = z.object({ alias: aliasDtoSchema });
 export const mergeItemsRequestSchema = z.object({ sourceId: uuidSchema, targetId: uuidSchema });
 export const mergeItemsResponseSchema = z.object({ item: itemDtoSchema });
+export const getItemResponseSchema = z.object({ item: itemDtoSchema, stats: catalogStatsSchema });
 
 export const categoriesResponseSchema = z.object({
   categories: z.array(categoryDtoSchema.extend({ itemCount: z.number().int().nonnegative() })),
@@ -385,6 +386,7 @@ export type CreateAliasRequest = z.infer<typeof createAliasRequestSchema>;
 export type AliasMutationResponse = z.infer<typeof aliasMutationResponseSchema>;
 export type MergeItemsRequest = z.infer<typeof mergeItemsRequestSchema>;
 export type MergeItemsResponse = z.infer<typeof mergeItemsResponseSchema>;
+export type GetItemResponse = z.infer<typeof getItemResponseSchema>;
 export type CategoriesResponse = z.infer<typeof categoriesResponseSchema>;
 export type CreateCategoryRequest = z.infer<typeof createCategoryRequestSchema>;
 export type UpdateCategoryRequest = z.infer<typeof updateCategoryRequestSchema>;

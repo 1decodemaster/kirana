@@ -203,6 +203,16 @@ const ENDPOINTS: readonly EndpointSpec[] = [
     response: c.itemMutationResponseSchema,
   },
   {
+    method: 'get',
+    path: '/api/v1/items/{id}',
+    operationId: 'getItem',
+    summary: 'Full item detail: aliases, defaults, attrs, usage stats (ADR-0003)',
+    tag: 'catalog',
+    response: c.getItemResponseSchema,
+    params: [idParam()],
+    documentedErrors: ['NOT_FOUND'],
+  },
+  {
     method: 'patch',
     path: '/api/v1/items/{id}',
     operationId: 'updateItem',
