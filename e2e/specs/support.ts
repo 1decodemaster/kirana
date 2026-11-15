@@ -1,7 +1,48 @@
 import { expect, type APIRequestContext, type Locator, type Page } from '@playwright/test';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { openDatabase } from '@kirana/db';
 import type { BoardResponse } from '@kirana/shared';
 
 export const COSTCO = 'Costco';
+
+const DB_FILE = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '.tmp', 'kirana.db');
+
+/** Reset the add-item specs' artifacts so both viewport projects start from
+ * the demo state (workers:1 shares one server DB across projects). Deletes
+ * the catalog items the specs create and any test-added Milk rows in the
+ * Indian Store; the demo Milk item itself stays. */
+export function resetAddItemState(): void {
+  const db = openDatabase(DB_FILE);
+  try {
+    db.transaction(() => {
+      const artifacts = db
+        .prepare(
+          "SELECT id FROM items WHERE name_norm IN ('tapioca starch', 'arrowroot flour', 'basmati ric')",
+        )
+        .all() as Array<{ id: string }>;
+      const ids = artifacts.map((r) => r.id);
+      if (ids.length > 0) {
+        const placeholders = ids.map(() => '?').join(', ');
+        db.prepare(`DELETE FROM list_items WHERE item_id IN (${placeholders})`).run(...ids);
+        db.prepare(`DELETE FROM item_store_stats WHERE item_id IN (${placeholders})`).run(...ids);
+        db.prepare(`DELETE FROM item_aliases WHERE item_id IN (${placeholders})`).run(...ids);
+        db.prepare(`DELETE FROM item_search WHERE item_id IN (${placeholders})`).run(...ids);
+        db.prepare(`DELETE FROM items WHERE id IN (${placeholders})`).run(...ids);
+      }
+      db.prepare(
+        `DELETE FROM list_items
+         WHERE store_id = (SELECT id FROM stores WHERE name_norm = 'indian store')
+           AND item_id IN (
+             (SELECT id FROM items WHERE name_norm = 'milk'),
+             (SELECT id FROM items WHERE name_norm = 'basmati rice')
+           )`,
+      ).run();
+    })();
+  } finally {
+    db.close();
+  }
+}
 
 async function boardOf(request: APIRequestContext): Promise<BoardResponse> {
   const res = await request.get('/api/v1/board');
