@@ -1,0 +1,11 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"],
+    "paths": {
+      "@kirana/shared": ["../shared/src/index.ts"]
+    }
+  },
+  "include": ["*.ts", "plugins/**/*.ts", "jobs/**/*.ts", "__tests__/**/*.ts"]
+}
