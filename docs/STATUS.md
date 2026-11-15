@@ -1,43 +1,40 @@
 # STATUS
-Updated: 2026-11-15 by lane A+B (P2 session)
-Current phase: P2 — Add Item & Search — COMPLETE (gates G2.1–G2.6 evidenced)
-Phase progress: spike + T-P2-01 + T-P2-02 done in one session
+Updated: 2026-11-15 by lane B+D (P1.5 session)
+Current phase: P1.5 — Shop Mode — COMPLETE (gates G15.1–G15.5 evidenced)
+Phase progress: T-P1.5-01 done in one session
 
 ## Done this phase
-- Search spike → ADR-0002: shared §8.6 scorer (no Fuse.js), FTS5 rebuilt on
-  canonical forms (migration 0002, trigger-maintained via registered
-  kirana_norm/kirana_fold), Devanagari rides exact/prefix norm tiers
-- Contract v1.1 (additive): catalogItemDto.stats?, getItemsQuery.storeId?;
-  openapi.json regenerated, contracts:check green
-- T-P2-01: GET /items (SQL tiers ∪ FTS prefilter ∪ edit-tier-on-demand),
-  POST /stores/:id/items (§6.4 upsert + revival, §6.5 write-backs, INV-8
-  stats, §7.4 clientId idempotency), POST /items, board ships §8.6 signals
-- T-P2-02: AddItemSheet (vaul, 80ms debounce, grouped suggestions, live
-  quick-parse, unit segmented control, category chips, near-dup prompt),
-  FAB → store picker, delete-item undo via undoToken re-add (BACKLOG closed)
-- Tests: 224 unit/integration + 50 e2e (both viewports) + docker smoke
+- Shop Mode (§8.5): /store/:id full-screen (outside NavShell — no tab bar),
+  sticky header with counter + progressbar + ✕, one-category-at-a-time
+  auto-advance with a 200 ms reduced-motion-aware scroll, 56 px rows with
+  28 px checkbox + qty chip, "Done shopping" footer (enabled only when
+  nothing is unchecked; marks done + returns Home), Wake Lock, Escape exit,
+  ScrollRestoration-backed same-scroll return (G15.4)
+- Entry: "Shop here" first action in Home's store ⋯ menu (PRD is silent on
+  entry; §8.3 reserves the header tap — assumption logged in PHASE-1.5)
+- web/src/lib/shopGroups.ts: pure §6.8 grouping/advance logic + 8 vitest
+  tests (web's first unit runner); StoreCard refactored onto it
+- e2e shop-mode.spec.ts (11 specs × 2 viewports) + smoke deep-link updated
+- Docker image rebuilt (new lockfile under --frozen-lockfile); smoke green
 
 ## In progress
-- none — gate evidence in docs/progress/PHASE-2.md
+- none — gate evidence in docs/progress/PHASE-1.5.md
 
 ## Blocked
 - none. Environment: the P1 demo container still runs on :8080 (user review,
-  old image). `kirana:local-node` was rebuilt with P2; a fresh demo is
+  old image). `kirana:local-node` now contains P1.5; a fresh demo is
   `docker run -p 8080:8080 -e SESSION_SECRET=… -e DATABASE_URL=/data/kirana.db
-  kirana:local-node`. The foreign uvicorn on the host and kirana:local tag
-  contention from P1 still apply.
+  kirana:local-node`. Non-interactive shells here need
+  PATH="$HOME/.nvm/versions/node/v22.23.2/bin:$HOME/.local/share/pnpm/bin".
 
 ## Next
-- P1.5 — Shop Mode (§8.5) per §15.3 order, then P3 — Management &
-  Import/Export. First P1.5 card: shop-mode screen over the same board cache;
-  first P3 card: item management + import/export APIs (P3 also claims
-  migration 0003 if the sessions table lands with P4 instead).
+- P3 — Management & Import/Export (§15.3 order). First card: item management
+  screens + import/export APIs; P3 claims migration 0003 if the sessions
+  table slips to P4.
 
 ## Contract state
-shared/contracts.ts @ v1.1 (P2 addendum: stats + storeId — ADR-0002);
-openapi.json regenerated, contracts:check green. Copy deck gained 7 rows in
-PRD §8.10 (near-dup actions, sheet title, picker title, groups, unit types,
-item-removed toast).
+shared/contracts.ts @ v1.1 — unchanged this phase (Shop Mode is a pure
+view; zero new tables/endpoints/DTOs). openapi.json check green.
 
 ## Migration lock
 next available: 0003 (0001_init.sql + 0002_item_search_norm_keys.sql applied;
