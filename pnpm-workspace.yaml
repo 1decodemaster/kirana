@@ -1,0 +1,14 @@
+packages:
+  - shared
+  - db
+  - server
+  - web
+  - e2e
+
+allowBuilds:
+  better-sqlite3: true
+  esbuild: true
+
+minimumReleaseAgeExclude:
+  - '@fastify/sensible@6.0.8'
+  - better-sqlite3@13.2.0

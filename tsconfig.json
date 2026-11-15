@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "noEmit": true,
+    "paths": {
+      "@kirana/shared": ["../shared/src/index.ts"]
+    }
+  },
+  "include": ["scripts/**/*.ts"]
+}

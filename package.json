@@ -1,0 +1,35 @@
+{
+  "name": "kirana",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.3.4",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "verify": "pnpm -r --workspace-concurrency=1 build && pnpm -r --workspace-concurrency=1 typecheck && pnpm -r --workspace-concurrency=1 lint && pnpm -r --workspace-concurrency=1 test:unit",
+    "dev:server": "pnpm --filter @kirana/server dev",
+    "dev:web": "pnpm --filter @kirana/web dev",
+    "build": "pnpm -r --workspace-concurrency=1 build",
+    "test:unit": "pnpm -r --workspace-concurrency=1 test:unit",
+    "lint": "pnpm -r --workspace-concurrency=1 lint",
+    "typecheck": "pnpm -r --workspace-concurrency=1 typecheck",
+    "gen:openapi": "tsx scripts/gen-openapi.ts",
+    "contracts:check": "tsx scripts/gen-openapi.ts --check",
+    "db:migrate": "pnpm --filter @kirana/db migrate",
+    "db:seed:categories": "pnpm --filter @kirana/db seed:categories",
+    "db:seed:catalog": "pnpm --filter @kirana/db seed:catalog",
+    "db:reindex": "pnpm --filter @kirana/db reindex",
+    "e2e": "pnpm --filter @kirana/e2e test"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "eslint": "^10.15.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.6.2",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.0",
+    "typescript-eslint": "^8.72.2"
+  }
+}
