@@ -1,0 +1,401 @@
+[
+  {
+    "name": "Atta",
+    "category": "Grains & Lentils",
+    "defaultUnit": "kg",
+    "emoji": "🌾",
+    "aliases": [
+      { "alias": "aata", "lang": "hi-Latn" },
+      { "alias": "आटा", "lang": "hi" },
+      { "alias": "flour", "lang": "en" }
+    ]
+  },
+  {
+    "name": "Basmati Rice",
+    "category": "Grains & Lentils",
+    "defaultUnit": "kg",
+    "emoji": "🍚",
+    "aliases": [
+      { "alias": "chawal", "lang": "hi-Latn" },
+      { "alias": "chaawal", "lang": "hi-Latn" },
+      { "alias": "चावल", "lang": "hi" },
+      { "alias": "rice", "lang": "en" }
+    ]
+  },
+  {
+    "name": "Toor Dal",
+    "category": "Grains & Lentils",
+    "defaultUnit": "kg",
+    "emoji": "🥣",
+    "aliases": [
+      { "alias": "toor dal", "lang": "hi-Latn" },
+      { "alias": "arhar dal", "lang": "hi-Latn" },
+      { "alias": "tuvar dal", "lang": "hi-Latn" },
+      { "alias": "तूर दाल", "lang": "hi" }
+    ]
+  },
+  {
+    "name": "Chana Dal",
+    "category": "Grains & Lentils",
+    "defaultUnit": "kg",
+    "emoji": "🥣",
+    "aliases": [
+      { "alias": "chana dal", "lang": "hi-Latn" },
+      { "alias": "चना दाल", "lang": "hi" }
+    ]
+  },
+  {
+    "name": "Moong Dal",
+    "category": "Grains & Lentils",
+    "defaultUnit": "kg",
+    "emoji": "🥣",
+    "aliases": [
+      { "alias": "moong dal", "lang": "hi-Latn" },
+      { "alias": "मूंग दाल", "lang": "hi" }
+    ]
+  },
+  {
+    "name": "Paneer",
+    "category": "Dairy & Eggs",
+    "defaultUnit": "g",
+    "emoji": "🧀",
+    "aliases": [
+      { "alias": "पनीर", "lang": "hi" },
+      { "alias": "cottage cheese", "lang": "en" }
+    ]
+  },
+  {
+    "name": "Curd",
+    "category": "Dairy & Eggs",
+    "defaultUnit": "g",
+    "emoji": "🥣",
+    "aliases": [
+      { "alias": "dahi", "lang": "hi-Latn" },
+      { "alias": "दही", "lang": "hi" },
+      { "alias": "yogurt", "lang": "en" }
+    ]
+  },
+  {
+    "name": "Milk",
+    "category": "Dairy & Eggs",
+    "defaultUnit": "l",
+    "emoji": "🥛",
+    "aliases": [
+      { "alias": "doodh", "lang": "hi-Latn" },
+      { "alias": "दूध", "lang": "hi" }
+    ]
+  },
+  {
+    "name": "Ghee",
+    "category": "Dairy & Eggs",
+    "defaultUnit": "kg",
+    "emoji": "🧈",
+    "aliases": [
+      { "alias": "घी", "lang": "hi" },
+      { "alias": "clarified butter", "lang": "en" }
+    ]
+  },
+  {
+    "name": "Eggs",
+    "category": "Dairy & Eggs",
+    "defaultUnit": "dozen",
+    "emoji": "🥚",
+    "aliases": [
+      { "alias": "anda", "lang": "hi-Latn" },
+      { "alias": "ande", "lang": "hi-Latn" },
+      { "alias": "अंडा", "lang": "hi" }
+    ]
+  },
+  {
+    "name": "Onion",
+    "category": "Produce",
+    "defaultUnit": "kg",
+    "emoji": "🧅",
+    "aliases": [
+      { "alias": "pyaaz", "lang": "hi-Latn" },
+      { "alias": "pyaz", "lang": "hi-Latn" },
+      { "alias": "प्याज़", "lang": "hi" }
+    ]
+  },
+  {
+    "name": "Tomato",
+    "category": "Produce",
+    "defaultUnit": "kg",
+    "emoji": "🍅",
+    "aliases": [
+      { "alias": "tamatar", "lang": "hi-Latn" },
+      { "alias": "टमाटर", "lang": "hi" }
+    ]
+  },
+  {
+    "name": "Potato",
+    "category": "Produce",
+    "defaultUnit": "kg",
+    "emoji": "🥔",
+    "aliases": [
+      { "alias": "aloo", "lang": "hi-Latn" },
+      { "alias": "आलू", "lang": "hi" }
+    ]
+  },
+  {
+    "name": "Garlic",
+    "category": "Produce",
+    "defaultUnit": "g",
+    "emoji": "🧄",
+    "aliases": [
+      { "alias": "lasan", "lang": "hi-Latn" },
+      { "alias": "lehsun", "lang": "hi-Latn" },
+      { "alias": "लहसुन", "lang": "hi" }
+    ]
+  },
+  {
+    "name": "Ginger",
+    "category": "Produce",
+    "defaultUnit": "g",
+    "emoji": "🫚",
+    "aliases": [
+      { "alias": "adrak", "lang": "hi-Latn" },
+      { "alias": "अदरक", "lang": "hi" }
+    ]
+  },
+  {
+    "name": "Green Chilli",
+    "category": "Produce",
+    "defaultUnit": "g",
+    "emoji": "🌶️",
+    "aliases": [
+      { "alias": "hari mirch", "lang": "hi-Latn" },
+      { "alias": "हरी मिर्च", "lang": "hi" }
+    ]
+  },
+  {
+    "name": "Coriander",
+    "category": "Produce",
+    "defaultUnit": "ea",
+    "emoji": "🌿",
+    "aliases": [
+      { "alias": "dhania", "lang": "hi-Latn" },
+      { "alias": "धनिया", "lang": "hi" },
+      { "alias": "cilantro", "lang": "en" }
+    ]
+  },
+  {
+    "name": "Cumin",
+    "category": "Spices & Masala",
+    "defaultUnit": "g",
+    "emoji": "🫘",
+    "aliases": [
+      { "alias": "jeera", "lang": "hi-Latn" },
+      { "alias": "जीरा", "lang": "hi" }
+    ]
+  },
+  {
+    "name": "Turmeric",
+    "category": "Spices & Masala",
+    "defaultUnit": "g",
+    "emoji": "🟡",
+    "aliases": [
+      { "alias": "haldi", "lang": "hi-Latn" },
+      { "alias": "हल्दी", "lang": "hi" }
+    ]
+  },
+  {
+    "name": "Red Chilli Powder",
+    "category": "Spices & Masala",
+    "defaultUnit": "g",
+    "emoji": "🌶️",
+    "aliases": [
+      { "alias": "lal mirch", "lang": "hi-Latn" },
+      { "alias": "मिर्च पाउडर", "lang": "hi" }
+    ]
+  },
+  {
+    "name": "Garam Masala",
+    "category": "Spices & Masala",
+    "defaultUnit": "g",
+    "emoji": "🫙",
+    "aliases": [{ "alias": "गरम मसाला", "lang": "hi" }]
+  },
+  {
+    "name": "Salt",
+    "category": "Spices & Masala",
+    "defaultUnit": "kg",
+    "emoji": "🧂",
+    "aliases": [
+      { "alias": "namak", "lang": "hi-Latn" },
+      { "alias": "नमक", "lang": "hi" }
+    ]
+  },
+  {
+    "name": "Sugar",
+    "category": "Breakfast",
+    "defaultUnit": "kg",
+    "emoji": "🍬",
+    "aliases": [
+      { "alias": "chini", "lang": "hi-Latn" },
+      { "alias": "cheeni", "lang": "hi-Latn" },
+      { "alias": "चीनी", "lang": "hi" }
+    ]
+  },
+  {
+    "name": "Tea",
+    "category": "Beverages & Tea/Coffee",
+    "defaultUnit": "g",
+    "emoji": "🍵",
+    "aliases": [
+      { "alias": "chai", "lang": "hi-Latn" },
+      { "alias": "चाय", "lang": "hi" }
+    ]
+  },
+  {
+    "name": "Coffee",
+    "category": "Beverages & Tea/Coffee",
+    "defaultUnit": "g",
+    "emoji": "☕",
+    "aliases": [
+      { "alias": "कॉफ़ी", "lang": "hi" },
+      { "alias": "कॉफी", "lang": "hi" }
+    ]
+  },
+  {
+    "name": "Bhujia",
+    "category": "Snacks & Namkeen",
+    "defaultUnit": "pack",
+    "emoji": "🥨",
+    "aliases": [
+      { "alias": "भुजिया", "lang": "hi" },
+      { "alias": "namkeen", "lang": "hi-Latn" }
+    ]
+  },
+  {
+    "name": "Biscuits",
+    "category": "Snacks & Namkeen",
+    "defaultUnit": "pack",
+    "emoji": "🍪",
+    "aliases": [
+      { "alias": "biscuit", "lang": "hi-Latn" },
+      { "alias": "बिस्कुट", "lang": "hi" }
+    ]
+  },
+  {
+    "name": "Cooking Oil",
+    "category": "Oils & Ghee",
+    "defaultUnit": "l",
+    "emoji": "🛢️",
+    "aliases": [
+      { "alias": "tel", "lang": "hi-Latn" },
+      { "alias": "तेल", "lang": "hi" }
+    ]
+  },
+  {
+    "name": "Mustard Oil",
+    "category": "Oils & Ghee",
+    "defaultUnit": "l",
+    "emoji": "🛢️",
+    "aliases": [
+      { "alias": "sarson tel", "lang": "hi-Latn" },
+      { "alias": "सरसों तेल", "lang": "hi" }
+    ]
+  },
+  {
+    "name": "Dish Soap",
+    "category": "Cleaning Supplies",
+    "defaultUnit": "ea",
+    "emoji": "🧼",
+    "aliases": [
+      { "alias": "dish wash", "lang": "en" },
+      { "alias": "बर्तन साबुन", "lang": "hi" }
+    ]
+  },
+  {
+    "name": "Laundry Detergent",
+    "category": "Cleaning Supplies",
+    "defaultUnit": "ea",
+    "emoji": "🧴",
+    "aliases": [
+      { "alias": "detergent", "lang": "en" },
+      { "alias": "वाशिंग पाउडर", "lang": "hi" }
+    ]
+  },
+  {
+    "name": "Toilet Cleaner",
+    "category": "Cleaning Supplies",
+    "defaultUnit": "ea",
+    "emoji": "🚽",
+    "aliases": [{ "alias": "टॉयलेट क्लीनर", "lang": "hi" }]
+  },
+  {
+    "name": "Shampoo",
+    "category": "Personal Care",
+    "defaultUnit": "ea",
+    "emoji": "🧴",
+    "aliases": [{ "alias": "शैम्पू", "lang": "hi" }]
+  },
+  {
+    "name": "Toothpaste",
+    "category": "Bathroom",
+    "defaultUnit": "ea",
+    "emoji": "🪥",
+    "aliases": [
+      { "alias": "manjan", "lang": "hi-Latn" },
+      { "alias": "दंत मंजन", "lang": "hi" }
+    ]
+  },
+  {
+    "name": "Toilet Paper",
+    "category": "Bathroom",
+    "defaultUnit": "pack",
+    "emoji": "🧻",
+    "aliases": [{ "alias": "tissue roll", "lang": "en" }]
+  },
+  {
+    "name": "Foil",
+    "category": "Storage & Organization",
+    "defaultUnit": "ea",
+    "emoji": "📦",
+    "aliases": [
+      { "alias": "aluminium foil", "lang": "en" },
+      { "alias": "एल्युमिनियम फॉयल", "lang": "hi" }
+    ]
+  },
+  {
+    "name": "Garbage Bags",
+    "category": "Cleaning Supplies",
+    "defaultUnit": "pack",
+    "emoji": "🗑️",
+    "aliases": [
+      { "alias": "कचरा बैग", "lang": "hi" },
+      { "alias": "trash bags", "lang": "en" }
+    ]
+  },
+  {
+    "name": "Batteries",
+    "category": "Electrical",
+    "defaultUnit": "pack",
+    "emoji": "🔋",
+    "aliases": [
+      { "alias": "battery", "lang": "en" },
+      { "alias": "बैटरी", "lang": "hi" }
+    ]
+  },
+  {
+    "name": "Light Bulbs",
+    "category": "Electrical",
+    "defaultUnit": "pack",
+    "emoji": "💡",
+    "aliases": [
+      { "alias": "bulb", "lang": "en" },
+      { "alias": "बल्ब", "lang": "hi" }
+    ]
+  },
+  {
+    "name": "Notebook",
+    "category": "Stationery",
+    "defaultUnit": "ea",
+    "emoji": "📓",
+    "aliases": [
+      { "alias": "copy", "lang": "hi-Latn" },
+      { "alias": "कॉपी", "lang": "hi" }
+    ]
+  }
+]

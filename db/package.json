@@ -1,0 +1,28 @@
+{
+  "name": "@kirana/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test:unit": "vitest run",
+    "migrate": "tsx cli.ts migrate",
+    "seed:categories": "tsx cli.ts seed-categories",
+    "seed:catalog": "tsx cli.ts seed-catalog",
+    "reindex": "tsx cli.ts reindex"
+  },
+  "dependencies": {
+    "@kirana/shared": "workspace:*",
+    "better-sqlite3": "^13.2.0",
+    "drizzle-orm": "^0.45.4"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^22.10.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.0",
+    "vitest": "^5.1.0"
+  }
+}
