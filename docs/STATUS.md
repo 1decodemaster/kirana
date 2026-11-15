@@ -17,10 +17,12 @@ Phase progress: 2/2 task cards
 - none — P1 gate evidence in docs/progress/PHASE-1.md
 
 ## Blocked
-- none. Note: the `kirana:local` image tag is contended on this machine
-  (other sessions build unrelated stacks under it); this repo's compose now
-  uses `kirana:local-node`. A foreign Python `uvicorn server.kirana.main`
-  runs on the host as root — not this project's code, left alone.
+- none. Environment note for the next session: a container from this repo
+  (`kirana`, image `kirana:local-node`) is intentionally left running on
+  :8080 with the demo seed — the user is reviewing it. The `kirana:local`
+  image tag is contended on this machine (other sessions build unrelated
+  stacks under it); compose uses `kirana:local-node`. A foreign Python
+  `uvicorn server.kirana.main` runs on the host as root — not our code.
 
 ## Next
 - P2 — Add Item & Search. First 20%: search spike (§8.6 ranking, FTS5 vs
