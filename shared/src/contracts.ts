@@ -140,6 +140,14 @@ export const storeDtoWithNotesSchema = storeDtoSchema.extend({
   notes: noteSchema.nullable(),
 });
 export const storeMutationResponseSchema = z.object({ store: storeDtoWithNotesSchema });
+export const deletedResponseSchema = z.object({ deleted: z.boolean() });
+export const logoutResponseSchema = z.object({});
+export const bulkCheckResponseSchema = z.object({
+  updated: z.number().int().nonnegative(),
+});
+export const adminBackupResponseSchema = z.object({
+  file: z.string().min(1),
+});
 export const categoryOrderRequestSchema = z.object({ categoryIds: z.array(uuidSchema).max(64) });
 export const clearBoughtResponseSchema = z.object({
   cleared: z.number().int().nonnegative(),
@@ -343,6 +351,10 @@ export type BoardQuery = z.infer<typeof boardQuerySchema>;
 export type CreateStoreRequest = z.infer<typeof createStoreRequestSchema>;
 export type UpdateStoreRequest = z.infer<typeof updateStoreRequestSchema>;
 export type StoreMutationResponse = z.infer<typeof storeMutationResponseSchema>;
+export type DeletedResponse = z.infer<typeof deletedResponseSchema>;
+export type LogoutResponse = z.infer<typeof logoutResponseSchema>;
+export type BulkCheckResponse = z.infer<typeof bulkCheckResponseSchema>;
+export type AdminBackupResponse = z.infer<typeof adminBackupResponseSchema>;
 export type CategoryOrderRequest = z.infer<typeof categoryOrderRequestSchema>;
 export type ClearBoughtResponse = z.infer<typeof clearBoughtResponseSchema>;
 export type AddListItemRequest = z.infer<typeof addListItemRequestSchema>;

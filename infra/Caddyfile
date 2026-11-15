@@ -1,0 +1,3 @@
+kirana.home.arpa {
+	reverse_proxy kirana:8080
+}

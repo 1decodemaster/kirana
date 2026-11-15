@@ -56,7 +56,10 @@ function parsePort(raw: string | undefined): number {
 }
 
 function resolveWebDistDir(override: string | undefined): string | undefined {
-  if (override !== undefined) return existsSync(override) ? override : undefined;
+  if (override !== undefined && override.length > 0) {
+    const abs = path.resolve(override);
+    return existsSync(abs) ? abs : undefined;
+  }
   const here = path.dirname(fileURLToPath(import.meta.url));
   for (const rel of ['../web/dist', '../../web/dist']) {
     const dir = path.resolve(here, rel);
