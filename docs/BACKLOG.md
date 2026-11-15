@@ -3,6 +3,9 @@
 Anything noticed while working that belongs to a later phase or is out of scope
 for v1 (PRD §1.5). Do not implement ahead — write it here instead (AGENTS.md §3).
 
+- [P3?] `item_aliases` has no `deleted_at` — alias removal is a hard row
+  delete (UI confirms first). If soft-deleted aliases ever matter, claim
+  migration 0003 for a `deleted_at` column + partial-index rethink.
 - [P3] `PUT /stores/:id/category-order` (contract #27) — drag-reorder UI ships
   in P3; `PATCH /stores/:id {categoryOrder}` already covers the API need.
 - [P3] Server-side quick-parse defense: §6.3 is a sheet behavior, so a raw
