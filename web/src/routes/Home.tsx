@@ -1,4 +1,5 @@
 import { useCallback, useReducer, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { Plus } from 'lucide-react';
 import type { AddListItemRequest, BoardResponse, ListItemDto, StoreDto } from '@kirana/shared';
 import {
@@ -65,6 +66,7 @@ function readArchivedOpen(): boolean {
 }
 
 export function Home(): React.JSX.Element {
+  const navigate = useNavigate();
   const board = useBoard();
   const patchItem = usePatchListItem();
   const bulkCheck = useBulkCheck();
@@ -187,6 +189,10 @@ export function Home(): React.JSX.Element {
     sheetStore === undefined
       ? []
       : ([
+          {
+            label: 'Shop here',
+            onSelect: () => navigate(`/store/${sheetStore.id}`),
+          },
           {
             label: 'Rename…',
             onSelect: () => setSheet({ kind: 'rename-store', storeId: sheetStore.id }),

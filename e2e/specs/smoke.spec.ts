@@ -43,8 +43,10 @@ test('More sheet opens, navigates, and closes on Escape', async ({ page }) => {
 });
 
 test('SPA deep links fall back to index.html', async ({ page }) => {
+  // A deep link to an unknown store renders the Shop Mode route (§8.5) —
+  // the not-found state proves the SPA shell served index.html.
   await page.goto('/store/01913b5e-7d5a-7000-8000-000000000001');
-  await expect(page.getByRole('heading', { name: /Shop Mode/ })).toBeVisible();
+  await expect(page.getByText('Store not found.')).toBeVisible();
 });
 
 test('keyboard path reaches the skip link first', async ({ page }) => {
