@@ -1111,6 +1111,7 @@ Server returns `matchedVia: 'name' | 'alias' | 'fuzzy'` and `inStore: boolean` s
 | Import success | "Imported {n} items across {m} stores." |
 | Import conflict | "{n} rows look like duplicates. Review them below." |
 | Delete confirm | "Remove {name} from this list?" |
+| Store delete confirm | "Remove {name}? Its history stays in backups." |
 | Store delete blocked | "This store still has items. Clear them first." |
 | Session expired | "Your session ended. Enter the passcode to continue." |
 

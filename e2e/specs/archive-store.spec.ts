@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { buyCostcoRows, costcoCard, openCostco, resetCostco } from './support.js';
+import { buyCostcoRows, costcoCard, resetCostco } from './support.js';
 
 test.beforeEach(async ({ request }) => {
   await resetCostco(request);

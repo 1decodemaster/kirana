@@ -30,6 +30,9 @@ ENV NODE_ENV=production \
   TZ=UTC
 WORKDIR /app
 COPY --from=build /out /app
+# DATA_DIR default: create the mountpoint as root so a bare `docker run`
+# (no volume) boots; compose mounts ./data over it.
+RUN mkdir -p /data && chown node:node /data
 USER node
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
