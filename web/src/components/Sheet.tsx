@@ -22,7 +22,9 @@ export function Sheet({ open, onClose, title, children }: SheetProps): React.JSX
     restoreFocusRef.current = document.activeElement as HTMLElement | null;
     const panel = panelRef.current;
     const first = panel?.querySelector<HTMLElement>(FOCUSABLE) ?? panel;
-    first?.focus();
+    // preventScroll: the panel is fixed to the bottom and already fully
+    // visible, so the initial focus must never scroll the document.
+    first?.focus({ preventScroll: true });
 
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key === 'Escape') {

@@ -1,6 +1,7 @@
 import { ChevronDown, ChevronRight, MoreHorizontal } from 'lucide-react';
 import type { CategoryDto, StoreDto } from '@kirana/shared';
 import { ItemRow } from './ItemRow';
+import { groupShopSections, type ShopSection } from '../lib/shopGroups';
 import { cn } from '../lib/utils';
 
 export interface StoreCardProps {
@@ -15,30 +16,6 @@ export interface StoreCardProps {
   readonly onArchive: (storeId: string) => void;
   readonly onStoreMenu: (storeId: string) => void;
   readonly pending?: boolean;
-}
-
-interface Group {
-  readonly category: CategoryDto | undefined;
-  readonly items: StoreDto['items'];
-}
-
-function groupByCategory(
-  items: StoreDto['items'],
-  categoriesById: ReadonlyMap<string, CategoryDto>,
-): Group[] {
-  const groups: Group[] = [];
-  for (const item of items) {
-    const category = item.categoryId === null ? undefined : categoriesById.get(item.categoryId);
-    const last = groups[groups.length - 1];
-    if (last !== undefined && last.category?.id === category?.id && category !== undefined) {
-      last.items.push(item);
-    } else if (last !== undefined && category === undefined && last.category === undefined) {
-      last.items.push(item);
-    } else {
-      groups.push({ category, items: [item] });
-    }
-  }
-  return groups;
 }
 
 export function StoreCard({
@@ -119,7 +96,7 @@ export function StoreCard({
           {store.items.length === 0 ? (
             <p className="px-3 py-4 text-muted">Nothing to buy here. Tap + to add an item.</p>
           ) : (
-            groupByCategory(store.items, categoriesById).map((group, gi) => (
+            groupShopSections(store.items, categoriesById).map((group: ShopSection, gi) => (
               <div key={group.category?.id ?? `none-${gi}`}>
                 {group.category !== undefined && (
                   <h3
