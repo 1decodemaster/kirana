@@ -1,9 +1,11 @@
 import type { FastifyInstance } from 'fastify';
 import {
+  addListItemRequestSchema,
   createStoreRequestSchema,
   deletedResponseSchema,
   updateStoreRequestSchema,
 } from '@kirana/shared';
+import { addListItem } from '../services/catalog.js';
 import {
   clearBought,
   createStore,
@@ -20,6 +22,13 @@ export async function storeRoutes(app: FastifyInstance): Promise<void> {
     const input = parseRequest(createStoreRequestSchema, req.body);
     const result = createStore(app.db, req.actor, input, Date.now());
     return reply.code(201).send(result);
+  });
+
+  app.post('/stores/:id/items', async (req, reply) => {
+    const id = idParam(req.params);
+    const input = parseRequest(addListItemRequestSchema, req.body);
+    const { body, replayed } = addListItem(app.db, req.actor, id, input, Date.now());
+    return reply.code(replayed ? 200 : 201).send(body);
   });
 
   app.patch('/stores/:id', async (req) => {

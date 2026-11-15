@@ -4,6 +4,7 @@ import { resolveActor, type ActorContext } from '../services/actor.js';
 import { boardRoutes } from './board.js';
 import { storeRoutes } from './stores.js';
 import { listItemRoutes } from './listItems.js';
+import { itemRoutes } from './items.js';
 import { categoryRoutes } from './categories.js';
 
 declare module 'fastify' {
@@ -37,5 +38,6 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
   await app.register(boardRoutes);
   await app.register(storeRoutes);
   await app.register(listItemRoutes);
+  await app.register(itemRoutes);
   await app.register(categoryRoutes);
 }

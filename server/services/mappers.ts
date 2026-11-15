@@ -1,6 +1,8 @@
 import type {
+  AliasDto,
   CategoryDto,
   CatalogItemDto,
+  ItemDto,
   ListItemDto,
   MemberDto,
   StoreCounts,
@@ -16,6 +18,7 @@ const LIST_STATUSES: ReadonlySet<string> = new Set(['active', 'bought', 'cleared
 const STORE_STATUSES: ReadonlySet<string> = new Set(['active', 'done', 'archived']);
 const ICON_KINDS: ReadonlySet<string> = new Set(['emoji', 'sprite', 'url', 'none']);
 const SCOPES: ReadonlySet<string> = new Set(['grocery', 'household', 'general']);
+const LANGS: ReadonlySet<string> = new Set(['en', 'hi-Latn', 'hi']);
 
 function enumValue(set: ReadonlySet<string>, value: string, what: string): string {
   if (!set.has(value)) throw new Error(`corrupt ${what}: ${value}`);
@@ -137,6 +140,62 @@ export function toStoreDtoWithNotes(row: StoreRow, items: readonly ListItemDto[]
   return { ...toStoreDto(row, items), notes: row.notes };
 }
 
+export interface CatalogStats {
+  readonly timesAdded: number;
+  readonly lastAddedAt: number | null;
+  readonly storeIds: string[];
+}
+
+export interface AliasRecord {
+  readonly id: string;
+  readonly alias: string;
+  readonly lang: string;
+}
+
+export interface ItemRowFull {
+  readonly id: string;
+  readonly name: string;
+  readonly name_norm: string;
+  readonly default_category_id: string | null;
+  readonly default_unit_code: string | null;
+  readonly default_qty: number | null;
+  readonly icon_kind: string;
+  readonly icon_ref: string | null;
+  readonly attrs_json: string;
+  readonly created_at: number;
+  readonly updated_at: number;
+}
+
+export function toItemDto(row: ItemRowFull, aliases: readonly AliasRecord[]): ItemDto {
+  let attrs: Record<string, unknown> = {};
+  try {
+    const parsed: unknown = JSON.parse(row.attrs_json);
+    if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      attrs = parsed as Record<string, unknown>;
+    }
+  } catch {
+    attrs = {};
+  }
+  return {
+    id: row.id,
+    name: row.name,
+    norm: row.name_norm,
+    defaultCategoryId: row.default_category_id,
+    defaultUnitCode: unitValue(row.default_unit_code) as ItemDto['defaultUnitCode'],
+    defaultQty: row.default_qty,
+    iconKind: enumValue(ICON_KINDS, row.icon_kind, 'item icon_kind') as ItemDto['iconKind'],
+    iconRef: row.icon_ref,
+    attrs,
+    aliases: aliases.map((a) => ({
+      id: a.id,
+      alias: a.alias,
+      lang: enumValue(LANGS, a.lang, 'alias lang') as AliasDto['lang'],
+    })),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 export function toCatalogItemDto(
   row: {
     readonly id: string;
@@ -147,6 +206,7 @@ export function toCatalogItemDto(
     readonly icon_ref: string | null;
   },
   aliases: readonly string[],
+  stats?: CatalogStats,
 ): CatalogItemDto {
   return {
     id: row.id,
@@ -156,5 +216,6 @@ export function toCatalogItemDto(
     defaultUnit: unitValue(row.default_unit_code) as CatalogItemDto['defaultUnit'],
     defaultCategoryId: row.default_category_id,
     iconRef: row.icon_ref,
+    ...(stats === undefined ? {} : { stats }),
   };
 }

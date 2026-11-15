@@ -8,6 +8,7 @@ import {
   toListItemDto,
   toMemberDto,
   toStoreDto,
+  type CatalogStats,
   type CategoryRow,
   type ListItemRow,
   type MemberRecord,
@@ -280,8 +281,42 @@ function buildCatalog(
     bucket.push(alias.alias);
     aliasesByItem.set(alias.item_id, bucket);
   }
+
+  // §8.6 signals (ADR-0002): the board ships per-item stats so the client's
+  // local index ranks exactly like the server. Only items ever added have rows.
+  const statsRows = db
+    .prepare(
+      `SELECT s.item_id, s.store_id, s.times_added, s.last_added_at
+       FROM item_store_stats s JOIN items i ON i.id = s.item_id
+       WHERE i.household_id = ? AND i.deleted_at IS NULL`,
+    )
+    .all(householdId) as Array<{
+    item_id: string;
+    store_id: string;
+    times_added: number;
+    last_added_at: number | null;
+  }>;
+  const statsByItem = new Map<string, CatalogStats>();
+  for (const s of statsRows) {
+    if (!selected.has(s.item_id)) continue;
+    const current = statsByItem.get(s.item_id);
+    statsByItem.set(s.item_id, {
+      timesAdded: (current?.timesAdded ?? 0) + s.times_added,
+      lastAddedAt: maxNullable(current?.lastAddedAt ?? null, s.last_added_at),
+      storeIds: [...(current?.storeIds ?? []), s.store_id],
+    });
+  }
+
   return {
-    catalog: itemRows.map((row) => toCatalogItemDto(row, aliasesByItem.get(row.id) ?? [])),
+    catalog: itemRows.map((row) =>
+      toCatalogItemDto(row, aliasesByItem.get(row.id) ?? [], statsByItem.get(row.id)),
+    ),
     truncated: total > cap,
   };
+}
+
+function maxNullable(a: number | null, b: number | null): number | null {
+  if (a === null) return b;
+  if (b === null) return a;
+  return Math.max(a, b);
 }
