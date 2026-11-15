@@ -4,8 +4,9 @@ Self-hosted, installable web app for a single household's shopping board.
 One shared list per store, grouped by aisle, with a multilingual catalog so
 the second time you add "atta" it takes three taps.
 
-**Status:** P0 — Foundations & Contracts (skeleton; no user-facing features yet).
-Spec: `docs/` + `kirana_prd_and_build_specification_v1.md`.
+**Status:** P1 — Core Board complete (Home screen is real: check, clear,
+archive). See `docs/STATUS.md`.
+Spec: `docs/PRD.md` (the frozen v1 specification).
 
 ## Development
 
