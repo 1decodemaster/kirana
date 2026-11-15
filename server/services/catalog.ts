@@ -23,7 +23,7 @@ import {
 import { httpError } from '../plugins/errors.js';
 import type { ActorContext } from './actor.js';
 import { appendChange } from './changeLog.js';
-import { categoryExists } from './categories.js';
+import { categoryExists, otherCategoryId } from './categories.js';
 import { toCatalogItemDto, toItemDto } from './mappers.js';
 
 interface ItemCoreRow {
@@ -711,19 +711,6 @@ function finishAdd(
       createdAlias,
     },
   };
-}
-
-function otherCategoryId(db: Database.Database, householdId: string): string | null {
-  // Items are a grocery-domain concept; two seeded 'Other' rows exist
-  // (grocery 🛒 / household 🧰) and the grocery one is the item fallback.
-  const row = db
-    .prepare(
-      `SELECT id FROM categories
-       WHERE name = 'Other' AND scope = 'grocery' AND deleted_at IS NULL AND (household_id IS NULL OR household_id = ?)
-       ORDER BY (household_id IS NULL), sort_order LIMIT 1`,
-    )
-    .get(householdId) as { id: string } | undefined;
-  return row?.id ?? null;
 }
 
 /** POST /items — create a catalog item (the sheet's "Create new anyway"), or
