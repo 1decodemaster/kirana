@@ -23,7 +23,8 @@
     "seed:categories": "tsx cli.ts seed-categories",
     "seed:catalog": "tsx cli.ts seed-catalog",
     "seed:demo": "tsx cli.ts seed-demo",
-    "reindex": "tsx cli.ts reindex"
+    "reindex": "tsx cli.ts reindex",
+    "hash-schema": "tsx hash-schema.ts"
   },
   "dependencies": {
     "@kirana/shared": "workspace:*",

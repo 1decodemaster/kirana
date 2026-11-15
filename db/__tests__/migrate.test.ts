@@ -19,17 +19,17 @@ beforeEach(() => {
 });
 
 describe('migration runner (G0.2)', () => {
-  it('applies 0001_init.sql to a fresh database', () => {
+  it('applies 0001 and 0002 to a fresh database', () => {
     const applied = migrate(db, migrations);
-    expect(applied).toEqual(['0001_init.sql']);
-    expect(listApplied(db)).toEqual(['0001_init.sql']);
+    expect(applied).toEqual(['0001_init.sql', '0002_item_search_norm_keys.sql']);
+    expect(listApplied(db)).toEqual(['0001_init.sql', '0002_item_search_norm_keys.sql']);
   });
 
   it('is idempotent — a second run applies nothing', () => {
     migrate(db, migrations);
     const applied = migrate(db, migrations);
     expect(applied).toEqual([]);
-    expect(listApplied(db)).toEqual(['0001_init.sql']);
+    expect(listApplied(db)).toEqual(['0001_init.sql', '0002_item_search_norm_keys.sql']);
   });
 
   it('matches the committed schema hash', () => {
