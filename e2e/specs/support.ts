@@ -108,6 +108,17 @@ export async function openCostco(page: Page): Promise<Locator> {
   return card;
 }
 
+/** Enter Shop Mode the way a shopper does: Home → store ⋯ menu → Shop here
+ *  (§8.5). Returns after the focused store screen has loaded. */
+export async function openShopMode(page: Page, storeName: string = COSTCO): Promise<void> {
+  await page.goto('/');
+  const card = costcoCard(page);
+  await card.getByRole('button', { name: `Store actions for ${storeName}` }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Shop here' }).click();
+  await page.waitForURL(/\/store\//);
+  await expect(page.getByRole('heading', { level: 1, name: storeName })).toBeVisible();
+}
+
 /** The header badge reads "N to buy" (nothing bought) or "b/N" (§6.6). */
 export async function counts(card: Locator): Promise<{ bought: number; total: number }> {
   const badge = card.locator('h2').getByText(/to buy|\d+\/\d+/);

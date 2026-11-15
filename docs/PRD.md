@@ -1120,6 +1120,12 @@ Server returns `matchedVia: 'name' | 'alias' | 'fuzzy'` and `inStore: boolean` s
 | Store delete confirm | "Remove {name}? Its history stays in backups." |
 | Store delete blocked | "This store still has items. Clear them first." |
 | Session expired | "Your session ended. Enter the passcode to continue." |
+| Store menu — shop | "Shop here" |
+| Shop Mode footer | "Done shopping" |
+| Shop Mode exit | "Exit shop mode" |
+| Shop Mode empty | "Nothing to buy here." |
+| Shop Mode back action | "Back to Home" |
+| Shop Mode not found | "Store not found." |
 
 * * *
 

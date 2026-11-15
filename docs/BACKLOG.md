@@ -26,3 +26,13 @@ for v1 (PRD §1.5). Do not implement ahead — write it here instead (AGENTS.md 
 - [P6] jobs worker: real polling implementation (P0 ships a stub that logs "no jobs").
 - [chore] Web bundle exceeds the 500 kB chunk warning (lucide-react + react +
   router + vaul in one chunk); code-split per route when it matters (P4 perf pass).
+- [P4] A failed background board refetch flips the whole screen to the §8.7
+  error state even when cached data exists (react-query v5 sets status
+  "error" on refetch failure regardless of data). Consider failureCount-gated
+  error UI or networkMode tuning when the offline queue lands — with
+  navigator.onLine=false queries pause instead of failing, so the rough edge
+  is specifically the "browser online, WAN dead" case surfaced in the
+  shop-mode offline e2e.
+- [P1.5?] Shop Mode shows only the current category; peeking/checking ahead
+  in a later aisle is intentionally impossible (strict §8.5 reading). If the
+  family asks for it, tap-to-expand collapsed headers is the minimal change.
