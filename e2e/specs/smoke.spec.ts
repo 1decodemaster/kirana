@@ -17,7 +17,7 @@ test('home renders the nav shell with the tab bar (G0.6)', async ({ page }) => {
   await expect(tabBar.getByRole('link', { name: 'Home' })).toBeVisible();
   await expect(tabBar.getByRole('link', { name: 'Catalog' })).toBeVisible();
   await expect(tabBar.getByRole('link', { name: 'Stores' })).toBeVisible();
-  await expect(tabBar.getByRole('button', { name: 'More' })).toBeVisible();
+  await expect(tabBar.getByRole('button', { name: 'More', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
 });
 
@@ -31,7 +31,8 @@ test('all primary routes are reachable (G0.6)', async ({ page }) => {
 
 test('More sheet opens, navigates, and closes on Escape', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'More' }).click();
+  // exact: the board also renders "More actions for {item}" buttons.
+  await page.getByRole('button', { name: 'More', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'More' });
   await expect(dialog).toBeVisible();
   for (const label of ['Categories', 'Data', 'Settings']) {

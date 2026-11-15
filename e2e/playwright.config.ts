@@ -1,12 +1,22 @@
+import path from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
+
+// A fixed non-8080 port keeps the suite independent of any dev server or
+// container that may already be bound to 8080 on this machine.
+const PORT = Number(process.env.E2E_PORT ?? 8090);
 
 export default defineConfig({
   testDir: './specs',
-  fullyParallel: true,
+  // Mutation specs share one server-side DB and depend on in-file ordering;
+  // a single worker with sequential files keeps runs deterministic (the 2
+  // projects still cover both viewports).
+  workers: 1,
+  fullyParallel: false,
+  globalSetup: './global-setup.ts',
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
   use: {
-    baseURL: 'http://127.0.0.1:8080',
+    baseURL: `http://127.0.0.1:${PORT}`,
     trace: 'retain-on-failure',
   },
   projects: [
@@ -15,15 +25,16 @@ export default defineConfig({
   ],
   webServer: {
     command: 'node ../server/dist/index.js',
-    url: 'http://127.0.0.1:8080/healthz',
+    url: `http://127.0.0.1:${PORT}/healthz`,
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,
     env: {
-      PORT: '8080',
+      PORT: String(PORT),
       SESSION_SECRET: 'e2e-secret',
       WEB_DIST_DIR: '../web/dist',
       KIRANA_REVISION: 'e2e',
       LOG_LEVEL: 'warn',
+      DATABASE_URL: path.join(process.cwd(), '.tmp', 'kirana.db'),
     },
   },
 });

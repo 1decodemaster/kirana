@@ -9,8 +9,10 @@
     "lint": "eslint ."
   },
   "devDependencies": {
+    "@kirana/db": "workspace:*",
     "@playwright/test": "^1.65.1",
     "@types/node": "^22.10.0",
-    "typescript": "^5.9.0"
+    "typescript": "^5.9.0",
+    "@kirana/shared": "workspace:*"
   }
 }

@@ -19,4 +19,5 @@ export {
   type SeedCatalogResult,
   type SeedItem,
 } from './seed.js';
+export { seedDemoBoard, type DemoSeedResult } from './demo.js';
 export * from './schema.js';
