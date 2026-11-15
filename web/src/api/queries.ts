@@ -1,10 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
+  AddListItemRequest,
+  AddListItemResponse,
   BoardResponse,
   BulkCheckResponse,
   ClearBoughtResponse,
+  CreateItemRequest,
   CreateStoreRequest,
   DeletedResponse,
+  ItemMutationResponse,
   ListItemMutationResponse,
   PatchListItemRequest,
   StoreMutationResponse,
@@ -14,6 +18,7 @@ import { del, get, patch, post } from './client.js';
 import {
   applyBulkCheck,
   applyClearBought,
+  applyListItemAdd,
   applyListItemDelete,
   applyListItemPatch,
   applyStoreDelete,
@@ -34,6 +39,58 @@ export function useBoard(): ReturnType<typeof useQuery<BoardResponse>> {
 export interface PatchListItemInput {
   readonly id: string;
   readonly patch: PatchListItemRequest;
+}
+
+export interface AddListItemInput {
+  readonly storeId: string;
+  readonly body: AddListItemRequest;
+  /** Display name for the optimistic placeholder (the body may carry only an
+   * itemId when the sheet adds a picked suggestion). */
+  readonly displayName?: string;
+}
+
+export function useAddListItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ storeId, body }: AddListItemInput) =>
+      post<AddListItemResponse>(`/stores/${storeId}/items`, body),
+    onMutate: async ({ storeId, body, displayName }) => {
+      await queryClient.cancelQueries({ queryKey: BOARD_KEY });
+      const previous = queryClient.getQueryData<BoardResponse>(BOARD_KEY);
+      if (previous !== undefined) {
+        // Optimistic placeholder row; the onSettled refetch swaps in the real one.
+        queryClient.setQueryData<BoardResponse>(
+          BOARD_KEY,
+          applyListItemAdd(previous, storeId, {
+            clientId: body.clientId,
+            name: displayName ?? body.name ?? '',
+            qtyValue: body.qtyValue ?? null,
+            unitCode: body.unitCode ?? null,
+            categoryId: body.categoryId ?? null,
+          }),
+        );
+      }
+      return { previous };
+    },
+    onError: (_error, _vars, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(BOARD_KEY, context.previous);
+      }
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: BOARD_KEY });
+    },
+  });
+}
+
+export function useCreateItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateItemRequest) => post<ItemMutationResponse>('/items', body),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: BOARD_KEY });
+    },
+  });
 }
 
 export function usePatchListItem() {

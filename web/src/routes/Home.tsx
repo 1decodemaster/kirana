@@ -1,10 +1,12 @@
 import { useCallback, useReducer, useState } from 'react';
 import { Plus } from 'lucide-react';
-import type { ListItemDto, StoreDto } from '@kirana/shared';
+import type { AddListItemRequest, BoardResponse, ListItemDto, StoreDto } from '@kirana/shared';
 import {
+  useAddListItem,
   useBoard,
   useBulkCheck,
   useClearBought,
+  useCreateItem,
   useCreateStore,
   useDeleteListItem,
   useDeleteStore,
@@ -16,6 +18,7 @@ import { StoreCard } from '../components/StoreCard';
 import { ConfirmSheet } from '../components/Sheet';
 import { MenuSheet } from '../components/MenuSheet';
 import { StoreFormSheet, type StoreFormValues } from '../components/StoreFormSheet';
+import { AddItemSheet } from '../components/AddItemSheet';
 import { UndoToast } from '../components/UndoToast';
 
 const EXPANDED_KEY = 'kirana.expanded-stores';
@@ -23,11 +26,19 @@ const ARCHIVED_OPEN_KEY = 'kirana.archived-open';
 
 interface UndoState {
   readonly message: string;
-  readonly undoIds: readonly string[];
+  readonly undo: () => void;
 }
 
 interface SheetState {
-  readonly kind: 'add-store' | 'rename-store' | 'item-menu' | 'store-menu' | 'delete-item' | 'delete-store';
+  readonly kind:
+    | 'add-store'
+    | 'rename-store'
+    | 'item-menu'
+    | 'store-menu'
+    | 'delete-item'
+    | 'delete-store'
+    | 'pick-store'
+    | 'add-item';
   readonly storeId?: string;
   readonly itemId?: string;
 }
@@ -64,6 +75,8 @@ export function Home(): React.JSX.Element {
   const doneStore = useStoreAction('done');
   const reopenStore = useStoreAction('reopen');
   const deleteStore = useDeleteStore();
+  const addListItem = useAddListItem();
+  const createItem = useCreateItem();
 
   const [expandedMap, setExpandedMap] = useReducer(
     (map: Record<string, boolean>, action: { id: string; expanded: boolean }): Record<string, boolean> => {
@@ -92,6 +105,13 @@ export function Home(): React.JSX.Element {
       message: error instanceof Error ? error.message : 'Something went wrong. Try again.',
     });
   }, []);
+
+  const addItem = useCallback(
+    (input: { storeId: string; body: AddListItemRequest; displayName: string }) => {
+      addListItem.mutate(input, { onError: onMutationError });
+    },
+    [addListItem, onMutationError],
+  );
 
   if (board.isPending) {
     return (
@@ -259,9 +279,15 @@ export function Home(): React.JSX.Element {
                   clearBought.mutate(storeId, {
                     onSuccess: (result, _storeId, context) => {
                       if (result.cleared > 0) {
+                        const undoIds = context?.undoIds ?? [];
                         setUndo({
                           message: `Cleared ${result.cleared} items`,
-                          undoIds: context?.undoIds ?? [],
+                          undo: () => {
+                            bulkCheck.mutate(
+                              { ids: undoIds, checked: true },
+                              { onError: onMutationError },
+                            );
+                          },
                         });
                       }
                     },
@@ -315,8 +341,18 @@ export function Home(): React.JSX.Element {
 
       <button
         type="button"
-        aria-label="Add store"
-        onClick={() => setSheet({ kind: 'add-store' })}
+        aria-label="Add item"
+        onClick={() => {
+          // §8.3: with more than one active store, ask which one first.
+          if (activeStores.length > 1) {
+            setSheet({ kind: 'pick-store' });
+          } else if (activeStores.length === 1) {
+            const only = activeStores[0];
+            if (only !== undefined) setSheet({ kind: 'add-item', storeId: only.id });
+          } else {
+            setSheet({ kind: 'add-store' });
+          }
+        }}
         className="fixed bottom-20 right-4 z-30 flex size-14 items-center justify-center rounded-pill bg-accent text-accent-fg shadow-lg hover:bg-accent/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:bottom-8 lg:left-64 lg:right-auto"
       >
         <Plus aria-hidden="true" className="size-7" />
@@ -361,6 +397,30 @@ export function Home(): React.JSX.Element {
       />
 
       <MenuSheet
+        open={sheet?.kind === 'pick-store'}
+        onClose={() => setSheet(null)}
+        title="Add to which store?"
+        actions={activeStores.map((store) => ({
+          label: `${store.iconRef ?? '🏬'} ${store.name}`,
+          onSelect: () => setSheet({ kind: 'add-item', storeId: store.id }),
+        }))}
+      />
+
+      {sheet?.kind === 'add-item' && sheetStore !== undefined && (
+        <AddItemSheet
+          open
+          onClose={() => setSheet(null)}
+          store={sheetStore}
+          board={data}
+          categories={data.categories}
+          pending={addListItem.isPending || createItem.isPending}
+          onAdd={addItem}
+          onCreateItem={(input) => createItem.mutateAsync(input)}
+          onError={onMutationError}
+        />
+      )}
+
+      <MenuSheet
         open={sheet?.kind === 'item-menu' && sheetItem !== undefined}
         onClose={() => setSheet(null)}
         title={sheetItem?.name ?? 'Item'}
@@ -381,9 +441,28 @@ export function Home(): React.JSX.Element {
         confirmLabel="Remove"
         destructive
         onConfirm={() => {
-          if (sheet?.itemId === undefined) return;
-          deleteListItem.mutate(sheet.itemId, {
-            onSuccess: () => setSheet(null),
+          const item = sheetItem;
+          if (sheet?.itemId === undefined || item === undefined) return;
+          deleteListItem.mutate(item.id, {
+            onSuccess: (result) => {
+              setSheet(null);
+              const undoToken = result.undoToken;
+              setUndo({
+                message: `Removed ${item.name}`,
+                undo: () => {
+                  const storeId = findItemStoreId(data, item.id);
+                  if (storeId === undefined) return;
+                  addListItem.mutate(
+                    {
+                      storeId,
+                      body: { clientId: undoToken, itemId: item.itemId },
+                      displayName: item.name,
+                    },
+                    { onError: onMutationError },
+                  );
+                },
+              });
+            },
             onError: onMutationError,
           });
         }}
@@ -416,10 +495,7 @@ export function Home(): React.JSX.Element {
         <UndoToast
           message={undo.message}
           onUndo={() => {
-            bulkCheck.mutate(
-              { ids: undo.undoIds, checked: true },
-              { onError: onMutationError },
-            );
+            undo.undo();
             setUndo(null);
           }}
           onExpire={() => setUndo(null)}
@@ -427,6 +503,13 @@ export function Home(): React.JSX.Element {
       )}
     </div>
   );
+}
+
+function findItemStoreId(board: BoardResponse, listItemId: string): string | undefined {
+  for (const store of board.stores) {
+    if (store.items.some((item) => item.id === listItemId)) return store.id;
+  }
+  return undefined;
 }
 
 function SkeletonHeader(): React.JSX.Element {

@@ -1,4 +1,10 @@
-import type { BoardResponse, PatchListItemRequest, StoreDto } from '@kirana/shared';
+import type {
+  BoardResponse,
+  ListItemDto,
+  PatchListItemRequest,
+  StoreDto,
+  UnitCode,
+} from '@kirana/shared';
 
 /** Recompute §6.6 counts from a store's items (active+bought only). */
 export function recount(store: StoreDto): StoreDto {
@@ -95,6 +101,36 @@ export function applyListItemDelete(board: BoardResponse, listItemId: string): B
   if (found === undefined) return board;
   return mapStore(board, found.store.id, (store) =>
     recount({ ...store, items: store.items.filter((item) => item.id !== listItemId) }),
+  );
+}
+
+/** Optimistic append for the add-item sheet: a placeholder row keyed by the
+ * clientId; the onSettled board refetch replaces it with the real row. */
+export function applyListItemAdd(
+  board: BoardResponse,
+  storeId: string,
+  optimistic: {
+    clientId: string;
+    name: string;
+    qtyValue: number | null;
+    unitCode: UnitCode | null;
+    categoryId: string | null;
+  },
+): BoardResponse {
+  const placeholder: ListItemDto = {
+    id: `pending:${optimistic.clientId}`,
+    itemId: 'pending',
+    name: optimistic.name,
+    qtyValue: optimistic.qtyValue,
+    unitCode: optimistic.unitCode,
+    categoryId: optimistic.categoryId,
+    status: 'active',
+    note: null,
+    addedBy: null,
+    updatedAt: 0,
+  };
+  return mapStore(board, storeId, (store) =>
+    recount({ ...store, items: [...store.items, placeholder] }),
   );
 }
 

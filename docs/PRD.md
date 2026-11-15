@@ -1106,8 +1106,14 @@ Server returns `matchedVia: 'name' | 'alias' | 'fuzzy'` and `inStore: boolean` s
 | Empty store | "Nothing to buy here. Tap + to add an item." |
 | All bought | "All done! Archive this store?" |
 | Clear bought toast | "Cleared {n} items · Undo" |
+| Item removed toast | "Removed {name} · Undo" |
 | Offline banner | "Offline — changes will sync when you reconnect." |
 | Near-duplicate | "You already have {name}. Use it, or create a new item?" |
+| Near-duplicate actions | "Use it" / "Create new anyway" |
+| Add-item sheet title | "Add to {store}" |
+| Store picker title | "Add to which store?" |
+| Suggestion groups | "In this store" / "Also in your catalog" |
+| Unit types | "Count" / "Weight" / "Volume" |
 | Import success | "Imported {n} items across {m} stores." |
 | Import conflict | "{n} rows look like duplicates. Review them below." |
 | Delete confirm | "Remove {name} from this list?" |
