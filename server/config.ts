@@ -15,6 +15,7 @@ export interface AppConfig {
   readonly webDistDir: string | undefined;
   readonly version: string;
   readonly revision: string;
+  readonly backupKeepDaily: number;
 }
 
 const LOG_LEVELS: ReadonlySet<string> = new Set(['fatal', 'error', 'warn', 'info', 'debug', 'trace']);
@@ -32,6 +33,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if (!LOG_LEVELS.has(logLevel)) {
     throw new ConfigError(`LOG_LEVEL must be one of ${[...LOG_LEVELS].join(', ')}`);
   }
+  const backupKeepDailyRaw = env.BACKUP_KEEP_DAILY;
+  let backupKeepDaily = 14;
+  if (backupKeepDailyRaw !== undefined && backupKeepDailyRaw !== '') {
+    const parsed = Number(backupKeepDailyRaw);
+    if (!Number.isInteger(parsed) || parsed < 1 || parsed > 365) {
+      throw new ConfigError('BACKUP_KEEP_DAILY must be an integer in [1, 365]');
+    }
+    backupKeepDaily = parsed;
+  }
   return {
     port,
     dataDir,
@@ -43,6 +53,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     webDistDir: resolveWebDistDir(env.WEB_DIST_DIR),
     version: readVersion(),
     revision: env.KIRANA_REVISION ?? 'dev',
+    backupKeepDaily,
   };
 }
 

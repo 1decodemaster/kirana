@@ -28,7 +28,12 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
 
   const database = openAppDatabase(config);
   await app.register(dbPlugin, { database });
-  await app.register(apiRoutes, { prefix: '/api/v1' });
+  await app.register(apiRoutes, {
+    prefix: '/api/v1',
+    dataDir: config.dataDir,
+    backupKeepDaily: config.backupKeepDaily,
+    sessionSecret: config.sessionSecret,
+  });
 
   if (config.webDistDir !== undefined) {
     await app.register(fastifyStatic, {

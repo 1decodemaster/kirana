@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.5",
+    "@fastify/multipart": "^10.1.8",
     "@fastify/sensible": "^6.0.8",
     "@fastify/static": "^10.1.11",
     "@kirana/db": "workspace:*",

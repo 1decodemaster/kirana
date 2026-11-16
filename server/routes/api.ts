@@ -6,6 +6,7 @@ import { storeRoutes } from './stores.js';
 import { listItemRoutes } from './listItems.js';
 import { itemRoutes } from './items.js';
 import { categoryRoutes } from './categories.js';
+import { importExportRoutes } from './importExport.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -15,10 +16,16 @@ declare module 'fastify' {
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
+export interface ApiRoutesOptions {
+  readonly dataDir: string;
+  readonly backupKeepDaily: number;
+  readonly sessionSecret: string;
+}
+
 // Deliberately NOT fastify-plugin: the CSRF + actor hooks and the request
 // decoration must stay scoped to /api/v1 and not leak onto /healthz or the
 // static SPA routes. Hooks added here apply to this scope and its children.
-export async function apiRoutes(app: FastifyInstance): Promise<void> {
+export async function apiRoutes(app: FastifyInstance, opts: ApiRoutesOptions): Promise<void> {
   // §7.1: mutations require X-Requested-With: kirana (defense in depth
   // alongside SameSite=Lax; meaningful once auth lands in P4).
   app.addHook('onRequest', async (req) => {
@@ -40,4 +47,9 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
   await app.register(listItemRoutes);
   await app.register(itemRoutes);
   await app.register(categoryRoutes);
+  await app.register(importExportRoutes, {
+    dataDir: opts.dataDir,
+    backupKeepDaily: opts.backupKeepDaily,
+    sessionSecret: opts.sessionSecret,
+  });
 }

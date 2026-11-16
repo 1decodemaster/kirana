@@ -19,6 +19,7 @@ export function makeConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     webDistDir: undefined,
     version: '0.1.0',
     revision: 'testrev',
+    backupKeepDaily: 14,
     ...overrides,
   };
 }
