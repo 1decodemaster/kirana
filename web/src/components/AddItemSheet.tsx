@@ -254,7 +254,7 @@ export function AddItemSheet({
     <Drawer.Root open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 z-50 bg-black/40" />
-        <Drawer.Content className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[90vh] w-full max-w-md flex-col rounded-t-card bg-surface p-4 outline-none">
+        <Drawer.Content className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[90vh] [max-height:90dvh] w-full max-w-md flex-col rounded-t-card bg-surface p-4 outline-none">
           <div className="flex items-center justify-between">
             <Drawer.Title className="text-store font-semibold">Add to {store.name}</Drawer.Title>
             <button
@@ -362,7 +362,10 @@ export function AddItemSheet({
               </div>
             )}
 
-            <fieldset>
+            {/* min-w-0: a <fieldset>'s UA min-width is min-content, which lets
+                the category pill row blow the drawer out to its full scroll
+                width (the "app slides left" bug). */}
+            <fieldset className="min-w-0">
               <legend className="text-tab font-semibold uppercase tracking-wide text-muted">Quantity</legend>
               <div role="radiogroup" aria-label="Unit type" className="mt-1 flex gap-1">
                 {UNIT_TYPES.map((type) => (
@@ -418,7 +421,7 @@ export function AddItemSheet({
               </div>
             </fieldset>
 
-            <fieldset>
+            <fieldset className="min-w-0">
               <legend className="text-tab font-semibold uppercase tracking-wide text-muted">Category</legend>
               <div className="mt-1 flex gap-1.5 overflow-x-auto pb-1">
                 {chipCategories.map((category) => (

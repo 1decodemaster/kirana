@@ -64,7 +64,7 @@ export function NavShell(): React.JSX.Element {
   }, [moreOpen]);
 
   return (
-    <div className="min-h-dvh bg-bg font-sans text-fg">
+    <div className="min-h-screen [min-height:100dvh] bg-bg font-sans text-fg">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-chip focus:bg-accent focus:px-3 focus:py-2 focus:text-accent-fg"

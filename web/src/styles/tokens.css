@@ -1,5 +1,18 @@
 @import 'tailwindcss';
 
+/* Color + scheme at the body level: vaul's Drawer.Portal mounts sheets to
+   document.body, outside the NavShell wrapper that carries text-fg — without
+   this, portal content inherits the UA default (black) and goes invisible
+   on the dark surface. color-scheme also darkens native form controls. */
+:root {
+  color-scheme: light dark;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-fg);
+}
+
 @theme {
   --font-sans:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif,

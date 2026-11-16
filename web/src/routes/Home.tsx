@@ -1,4 +1,4 @@
-import { useCallback, useReducer, useState } from 'react';
+import { useCallback, useEffect, useReducer, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Plus } from 'lucide-react';
 import type { AddListItemRequest, BoardResponse, ListItemDto, StoreDto } from '@kirana/shared';
@@ -21,6 +21,7 @@ import { MenuSheet } from '../components/MenuSheet';
 import { StoreFormSheet, type StoreFormValues } from '../components/StoreFormSheet';
 import { AddItemSheet } from '../components/AddItemSheet';
 import { UndoToast } from '../components/UndoToast';
+import { cn } from '../lib/utils';
 
 const EXPANDED_KEY = 'kirana.expanded-stores';
 const ARCHIVED_OPEN_KEY = 'kirana.archived-open';
@@ -101,6 +102,28 @@ export function Home(): React.JSX.Element {
   const [sheet, setSheet] = useState<SheetState | null>(null);
   const [banner, setBanner] = useState<Banner>(null);
   const [undo, setUndo] = useState<UndoState | null>(null);
+  // The + FAB slides off the right edge at the bottom of the page so it never
+  // covers the Archived section (user-reported overlap).
+  const [fabHidden, setFabHidden] = useState(false);
+
+  useEffect(() => {
+    let raf = 0;
+    const evaluate = (): void => {
+      const doc = document.documentElement;
+      const maxScroll = doc.scrollHeight - window.innerHeight;
+      setFabHidden(maxScroll > 0 && window.scrollY >= maxScroll - 24);
+    };
+    const onScroll = (): void => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(evaluate);
+    };
+    evaluate();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
 
   const onMutationError = useCallback((error: unknown): void => {
     setBanner({
@@ -359,7 +382,14 @@ export function Home(): React.JSX.Element {
             setSheet({ kind: 'add-store' });
           }
         }}
-        className="fixed bottom-20 right-4 z-30 flex size-14 items-center justify-center rounded-pill bg-accent text-accent-fg shadow-lg hover:bg-accent/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:bottom-8 lg:left-64 lg:right-auto"
+        className={cn(
+          'fixed bottom-20 right-4 z-30 flex size-14 items-center justify-center rounded-pill bg-accent text-accent-fg shadow-lg hover:bg-accent/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:bottom-8 lg:left-64 lg:right-auto',
+          // §8.2 motion: 150ms ease-out; prefers-reduced-motion zeroes it.
+          'transition-[transform,opacity,visibility] duration-150 ease-out',
+          fabHidden
+            ? 'pointer-events-none invisible translate-x-[calc(100%+1rem)] opacity-0 lg:translate-x-0'
+            : 'translate-x-0',
+        )}
       >
         <Plus aria-hidden="true" className="size-7" />
       </button>

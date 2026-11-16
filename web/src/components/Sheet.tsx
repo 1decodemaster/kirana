@@ -67,7 +67,7 @@ export function Sheet({ open, onClose, title, children }: SheetProps): React.JSX
         aria-modal="true"
         aria-label={title}
         className={cn(
-          'absolute inset-x-0 bottom-0 max-h-[90dvh] overflow-y-auto rounded-t-card',
+          'absolute inset-x-0 bottom-0 max-h-[90vh] [max-height:90dvh] overflow-y-auto rounded-t-card',
           'border-t border-border bg-surface p-4 pb-8 shadow-2xl',
         )}
       >
