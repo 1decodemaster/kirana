@@ -49,3 +49,7 @@ for v1 (PRD §1.5). Do not implement ahead — write it here instead (AGENTS.md 
 - [P1.5?] Shop Mode shows only the current category; peeking/checking ahead
   in a later aisle is intentionally impossible (strict §8.5 reading). If the
   family asks for it, tap-to-expand collapsed headers is the minimal change.
+- [P5?] ReorderList pointer-drag has no auto-scroll near the viewport edge, so
+  a list longer than one screen cannot be drag-reordered end to end (the
+  keyboard path — Space grab, arrows, Space drop — works anywhere). Fine for
+  the seeded data volume; revisit if a household's category list grows.

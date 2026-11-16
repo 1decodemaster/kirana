@@ -18,6 +18,8 @@ interface StoreFormSheetProps {
   readonly submitLabel: string;
   readonly initial?: StoreFormValues;
   readonly pending?: boolean;
+  /** Server error (e.g. name conflict) shown inline above the actions. */
+  readonly error?: string | null;
   readonly onSubmit: (values: StoreFormValues) => void;
 }
 
@@ -28,6 +30,7 @@ export function StoreFormSheet({
   submitLabel,
   initial,
   pending = false,
+  error = null,
   onSubmit,
 }: StoreFormSheetProps): React.JSX.Element {
   const [name, setName] = useState(initial?.name ?? '');
@@ -96,6 +99,12 @@ export function StoreFormSheet({
             />
           </label>
         </fieldset>
+
+        {error !== null && (
+          <p role="alert" className="rounded-chip border border-danger/40 bg-danger/10 px-3 py-2 text-item">
+            {error}
+          </p>
+        )}
 
         <div className="flex gap-2">
           <button

@@ -1142,6 +1142,25 @@ Server returns `matchedVia: 'name' | 'alias' | 'fuzzy'` and `inStore: boolean` s
 | Alias languages | "English" / "Hindi (Latin)" / "Hindi (Devanagari)" |
 | Alias remove confirm | "Remove alias "{alias}"?" |
 | Alias conflict action | "Go to {name}" |
+| Store menu — rename | "Rename…" |
+| Store menu — aisle order | "Aisle order…" |
+| Store menu — archive | "Archive" |
+| Store menu — restore | "Restore" |
+| Store menu — delete | "Delete store…" |
+| Categories empty | "No categories yet. Add the aisles you shop by." |
+| Categories add action | "Add category" |
+| Category edit sheet title | "Edit category" |
+| Category menu | "Edit…" / "Move up" / "Move down" / "Delete…" |
+| Category delete confirm | "Delete {name}? Items in it move to Other." |
+| Category usage | "{n} item(s)" |
+| Aisle order section | "Aisle order" |
+| Aisle order hint | "Drag to set how {store} groups its aisles." |
+| Reorder handle label | "Reorder {name}" |
+| Reorder handle hint | "Press Space on the reorder handle to pick up a row, then use the arrow keys to move it." |
+| Reorder grabbed | "{name} grabbed. Use the up and down arrow keys to move it, then press Space to drop, Escape to cancel." |
+| Reorder moved | "Position {n} of {total}." |
+| Reorder dropped | "{name} dropped." |
+| Reorder cancelled | "Reorder cancelled." |
 
 * * *
 

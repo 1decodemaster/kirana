@@ -5,8 +5,11 @@ import type {
   AliasMutationResponse,
   BoardResponse,
   BulkCheckResponse,
+  CategoriesResponse,
+  CategoryMutationResponse,
   ClearBoughtResponse,
   CreateAliasRequest,
+  CreateCategoryRequest,
   CreateItemRequest,
   CreateStoreRequest,
   DeletedResponse,
@@ -18,18 +21,21 @@ import type {
   MergeItemsResponse,
   PatchListItemRequest,
   StoreMutationResponse,
+  UpdateCategoryRequest,
   UpdateItemRequest,
   UpdateStoreRequest,
 } from '@kirana/shared';
 import { del, get, patch, post } from './client.js';
 import {
   applyBulkCheck,
+  applyCategorySortOrder,
   applyClearBought,
   applyListItemAdd,
   applyListItemDelete,
   applyListItemPatch,
   applyStoreDelete,
-  applyStoreStatus,
+  applyStoreOrder,
+  applyStorePatch,
   applyStoreUpsert,
   boughtIdsInStore,
 } from './cache.js';
@@ -224,11 +230,8 @@ export function useUpdateStore() {
     onMutate: async ({ id, patch: body }) => {
       await queryClient.cancelQueries({ queryKey: BOARD_KEY });
       const previous = queryClient.getQueryData<BoardResponse>(BOARD_KEY);
-      if (previous !== undefined && body.status !== undefined) {
-        queryClient.setQueryData<BoardResponse>(
-          BOARD_KEY,
-          applyStoreStatus(previous, id, body.status),
-        );
+      if (previous !== undefined) {
+        queryClient.setQueryData<BoardResponse>(BOARD_KEY, applyStorePatch(previous, id, body));
       }
       return { previous };
     },
@@ -254,7 +257,7 @@ export function useStoreAction(action: 'done' | 'reopen') {
       if (previous !== undefined) {
         queryClient.setQueryData<BoardResponse>(
           BOARD_KEY,
-          applyStoreStatus(previous, storeId, action === 'done' ? 'done' : 'active'),
+          applyStorePatch(previous, storeId, { status: action === 'done' ? 'done' : 'active' }),
         );
       }
       return { previous };
@@ -382,6 +385,163 @@ export function useMergeItems() {
       void queryClient.invalidateQueries({ queryKey: ['item', input.sourceId] });
       void queryClient.invalidateQueries({ queryKey: ['item', input.targetId] });
       void queryClient.invalidateQueries({ queryKey: ['items'] });
+      void queryClient.invalidateQueries({ queryKey: BOARD_KEY });
+    },
+  });
+}
+
+// ─── Management (§8.1 /stores, /categories; §7.2 #6–8, #23–27) ──────────────
+
+export const CATEGORIES_KEY = ['categories'] as const;
+
+/** GET /categories — the management read with usage counts. */
+export function useCategories() {
+  return useQuery({
+    queryKey: CATEGORIES_KEY,
+    queryFn: ({ signal }) => get<CategoriesResponse>('/categories', signal),
+  });
+}
+
+export function useCreateCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateCategoryRequest) =>
+      post<CategoryMutationResponse>('/categories', body).then((r) => r.category),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: CATEGORIES_KEY });
+      void queryClient.invalidateQueries({ queryKey: BOARD_KEY });
+    },
+  });
+}
+
+export function useUpdateCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: string; patch: UpdateCategoryRequest }) =>
+      patch<CategoryMutationResponse>(`/categories/${input.id}`, input.patch).then(
+        (r) => r.category,
+      ),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: CATEGORIES_KEY });
+      void queryClient.invalidateQueries({ queryKey: BOARD_KEY });
+    },
+  });
+}
+
+export function useDeleteCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => del<DeletedResponse>(`/categories/${id}`),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: CATEGORIES_KEY });
+      void queryClient.invalidateQueries({ queryKey: BOARD_KEY });
+    },
+  });
+}
+
+/** Sequentially PATCH sortOrder for every store whose position changed
+ *  (§7.2 #7 carries sortOrder); optimistic reorder keeps the list still. */
+export function useReorderStores() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (orderedIds: readonly string[]) => {
+      for (const [index, id] of orderedIds.entries()) {
+        await patch<StoreMutationResponse>(`/stores/${id}`, { sortOrder: index * 10 });
+      }
+    },
+    onMutate: async (orderedIds) => {
+      await queryClient.cancelQueries({ queryKey: BOARD_KEY });
+      const previous = queryClient.getQueryData<BoardResponse>(BOARD_KEY);
+      if (previous !== undefined) {
+        queryClient.setQueryData<BoardResponse>(BOARD_KEY, applyStoreOrder(previous, orderedIds));
+      }
+      return { previous };
+    },
+    onError: (_error, _ids, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(BOARD_KEY, context.previous);
+      }
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: BOARD_KEY });
+    },
+  });
+}
+
+/** Sequentially PATCH sortOrder for every category whose position changed. */
+export function useReorderCategories() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      readonly orderedIds: readonly string[];
+      readonly changed: ReadonlySet<string>;
+    }) => {
+      for (const [index, id] of input.orderedIds.entries()) {
+        if (!input.changed.has(id)) continue;
+        await patch<CategoryMutationResponse>(`/categories/${id}`, { sortOrder: index * 10 });
+      }
+    },
+    onMutate: async (input) => {
+      await queryClient.cancelQueries({ queryKey: CATEGORIES_KEY });
+      await queryClient.cancelQueries({ queryKey: BOARD_KEY });
+      const previousCategories = queryClient.getQueryData<CategoriesResponse>(CATEGORIES_KEY);
+      const previousBoard = queryClient.getQueryData<BoardResponse>(BOARD_KEY);
+      if (previousCategories !== undefined) {
+        queryClient.setQueryData<CategoriesResponse>(CATEGORIES_KEY, {
+          categories: previousCategories.categories.map((c) => {
+            const index = input.orderedIds.indexOf(c.id);
+            return index === -1 ? c : { ...c, sortOrder: index * 10 };
+          }),
+        });
+      }
+      if (previousBoard !== undefined) {
+        queryClient.setQueryData<BoardResponse>(
+          BOARD_KEY,
+          applyCategorySortOrder(previousBoard, input.orderedIds),
+        );
+      }
+      return { previousCategories, previousBoard };
+    },
+    onError: (_error, _input, context) => {
+      if (context?.previousCategories !== undefined) {
+        queryClient.setQueryData(CATEGORIES_KEY, context.previousCategories);
+      }
+      if (context?.previousBoard !== undefined) {
+        queryClient.setQueryData(BOARD_KEY, context.previousBoard);
+      }
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: CATEGORIES_KEY });
+      void queryClient.invalidateQueries({ queryKey: BOARD_KEY });
+    },
+  });
+}
+
+/** PATCH /stores/:id {categoryOrder} (§7.2 #7) — per-store aisle order. */
+export function useSetAisleOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { storeId: string; categoryIds: readonly string[] }) =>
+      patch<StoreMutationResponse>(`/stores/${input.storeId}`, {
+        categoryOrder: input.categoryIds,
+      }).then((r) => r.store),
+    onMutate: async ({ storeId, categoryIds }) => {
+      await queryClient.cancelQueries({ queryKey: BOARD_KEY });
+      const previous = queryClient.getQueryData<BoardResponse>(BOARD_KEY);
+      if (previous !== undefined) {
+        queryClient.setQueryData<BoardResponse>(
+          BOARD_KEY,
+          applyStorePatch(previous, storeId, { categoryOrder: [...categoryIds] }),
+        );
+      }
+      return { previous };
+    },
+    onError: (_error, _input, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(BOARD_KEY, context.previous);
+      }
+    },
+    onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: BOARD_KEY });
     },
   });

@@ -8,7 +8,7 @@ Gates: G3.1–G3.6.
 
 - T-P3-01 — item & category management APIs (backend) ✅
 - T-P3-02 — import preview/commit + export JSON/CSV + admin backup (backend) ✅
-- T-P3-03 — web: Catalog browser + item detail (aliases, merge)
+- T-P3-03 — web: Catalog browser + item detail (aliases, merge) ✅
 - T-P3-04 — web: Stores + Categories management, per-store aisle ordering (drag)
 - T-P3-05 — web: Data screen (import preview/commit, export, backup)
 - T-P3-06 — e2e import-roundtrip.spec.ts + phase close (G3.2–G3.6)
@@ -205,6 +205,80 @@ Learned:    (a) pnpm lives in ~/.local/share/pnpm/bin and node 22 in
 Next:       T-P3-04 — web: Stores + Categories management, per-store aisle
             ordering (drag) (§8.1; PATCH /stores/:id {categoryOrder}
             already in the contract).
+
+## 2026-11-15 — lane B — T-P3-04 (web Stores + Categories management)
+
+Built:      /stores (§8.1): board-cached management list — drag + keyboard
+            reorder (sortOrder renumber ×10 via sequential PATCH, optimistic
+            applyStoreOrder), rename/icon sheet (StoreFormSheet reuse, now
+            with an inline server-error slot), Add store, per-row menu
+            (Shop here / Rename… / Aisle order… deep-link to
+            /categories?store= / Archive — disabled while active items > 0 /
+            Restore / Delete store… with confirm; STORE_NOT_EMPTY renders the
+            copy-deck blocked message as a banner); archived stores in a
+            separate section (Restore/Delete only); §8.7 loading skeleton /
+            error+Retry / empty state.
+            /categories (§8.1): GET /categories list with usage counts, drag
+            + Move up/Move down reordering (PATCH sortOrder ×10), CategoryForm
+            Sheet (name, 12-emoji icon picker, §8.2 6-color palette or none)
+            for add/edit, Delete… with confirm (server soft-deletes and
+            reassigns to the §6.5 'Other' fallback); the grocery 'Other' row
+            hides Delete (the server would 409); per-store "Aisle order"
+            section: store chips driven by ?store=, effective order =
+            saved categoryOrder (unknown ids dropped) then the remainder by
+            sortOrder+name (lib/reorder.ts), drag → PATCH /stores/:id
+            {categoryOrder} — G3.4 persistence verified end-to-end in e2e.
+            api/queries.ts: useCategories, category CRUD hooks,
+            useReorderStores/useReorderCategories (sequential PATCH + one
+            optimistic swap), useSetAisleOrder. cache.ts: applyStorePatch
+            (replaces applyStoreStatus — useUpdateStore is now optimistic for
+            every patch field), applyStoreOrder, applyCategorySortOrder.
+            ReorderList component: pointer drag (midpoint swap) + keyboard
+            drag (Space grab, arrows, Space drop, Escape cancel) with a
+            polite live region; 44px handle; touch-action none.
+Tests:      `pnpm verify` green: 91 shared + 32 db + 30 web (was 13; +17:
+            reorder 12, cache 5) + 167 server. Throwaway Playwright smoke
+            (8 specs × mobile-chrome 375×667 + pixel-7, deleted after the
+            run — committed e2e is T-P3-06): rename round-trip, pointer drag
+            swap + persistence + keyboard restore, blocked-delete banner,
+            add/delete store round-trip, 'Other' delete guard, aisle-order
+            keyboard move persisted per store (G3.4), category rename/add/
+            delete round-trips.
+Decisions:  (1) Store reorder commits one PATCH per changed store
+            (sortOrder = index*10) — no bulk endpoint exists and N is small;
+            aisle order commits a single PATCH {categoryOrder: all ids}.
+            (2) PUT /stores/:id/category-order (#27) stays unimplemented —
+            the UI uses #7's categoryOrder field, exactly as the BACKLOG
+            entry from T-P3-01 anticipated. (3) Category scope is not
+            exposed in the UI (create sends 'grocery'; PATCH never sends
+            scope) — the PRD defines no scope UI and the board mixes scopes
+            globally; logged here rather than inventing copy. (4) The
+            grocery 'Other' fallback row hides Delete (server 409s it);
+            household 'Other' keeps it. (5) Delete confirms close on error
+            so the banner is not stranded behind the sheet overlay. (6) New
+            microcopy added to §8.10 in the same change (stores menu labels,
+            categories empty/add/edit/delete, aisle-order section + hint,
+            reorder handle/hint/live-region strings, "{n} item(s)") per
+            AGENTS.md §5. (7) ReorderList captures the pointer on the UL,
+            not the handle — reordering moves <li> nodes, which implicitly
+            releases an element capture mid-drag and strands the pointerup
+            (found via the e2e trace); commit is skipped when the order did
+            not change so a handle tap never re-PATCHes.
+Deviations: None to the PRD. (The #27 PUT gap was already BACKLOG'd; no
+            contract change; schema untouched.)
+Learned:    (a) Implicit pointer capture is released when the captured
+            element's DOM position changes (React key reorder) — capture a
+            stable ancestor (the UL) and host move/up/cancel there.
+            (b) Playwright mouse.up exactly on a row's midpoint does not
+            swap (insertionIndex is strictly-greater) — aim past the
+            midpoint in drag specs. (c) expect.poll against the request
+            fixture's /board is a cheap way to assert server-side
+            persistence after optimistic UI assertions. (d) A bare handle
+            tap is pointerdown+up with no move — gate the commit on an
+            actual order change. (e) Pointer-drag has no edge auto-scroll;
+            keyboard reorder covers long lists (BACKLOG note added).
+Next:       T-P3-05 — web Data screen (import preview/commit, export,
+            backup) — §8.1 /data, §9.2–9.4, §12.4; contract v1.3 frozen.
 
 ## Handoff (T-P3-01)
 

@@ -4,6 +4,7 @@ import type {
   PatchListItemRequest,
   StoreDto,
   UnitCode,
+  UpdateStoreRequest,
 } from '@kirana/shared';
 
 /** Recompute §6.6 counts from a store's items (active+bought only). */
@@ -134,12 +135,51 @@ export function applyListItemAdd(
   );
 }
 
-export function applyStoreStatus(
+export function applyStorePatch(
   board: BoardResponse,
   storeId: string,
-  status: StoreDto['status'],
+  patch: UpdateStoreRequest,
 ): BoardResponse {
-  return mapStore(board, storeId, (store) => ({ ...store, status }));
+  return mapStore(board, storeId, (store) => ({
+    ...store,
+    ...(patch.name !== undefined ? { name: patch.name } : {}),
+    ...(patch.iconKind !== undefined ? { iconKind: patch.iconKind } : {}),
+    ...(patch.iconRef !== undefined ? { iconRef: patch.iconRef } : {}),
+    ...(patch.status !== undefined ? { status: patch.status } : {}),
+    ...(patch.categoryOrder !== undefined ? { categoryOrder: patch.categoryOrder } : {}),
+    ...(patch.sortOrder !== undefined ? { sortOrder: patch.sortOrder } : {}),
+  }));
+}
+
+/** Optimistic reorder of the board's store list to match the committed
+ *  order; every store's sortOrder is renumbered to match its position. */
+export function applyStoreOrder(board: BoardResponse, orderedIds: readonly string[]): BoardResponse {
+  const position = new Map(orderedIds.map((id, index) => [id, index]));
+  const reordered = [...board.stores].sort(
+    (a, b) => (position.get(a.id) ?? Infinity) - (position.get(b.id) ?? Infinity),
+  );
+  return {
+    ...board,
+    stores: reordered.map((store, index) => ({
+      ...store,
+      sortOrder: position.get(store.id) === undefined ? store.sortOrder : index * 10,
+    })),
+  };
+}
+
+/** Optimistic category sortOrder renumber after a drag commit; the board's
+ *  categories array keeps its shape (consumers sort by sortOrder). */
+export function applyCategorySortOrder(
+  board: BoardResponse,
+  orderedIds: readonly string[],
+): BoardResponse {
+  const sortOrder = new Map(orderedIds.map((id, index) => [id, index * 10]));
+  return {
+    ...board,
+    categories: board.categories.map((c) =>
+      sortOrder.has(c.id) ? { ...c, sortOrder: sortOrder.get(c.id) ?? c.sortOrder } : c,
+    ),
+  };
 }
 
 export function applyStoreDelete(board: BoardResponse, storeId: string): BoardResponse {
