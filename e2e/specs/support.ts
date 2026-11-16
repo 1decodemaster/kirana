@@ -1,7 +1,7 @@
 import { expect, type APIRequestContext, type Locator, type Page } from '@playwright/test';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { openDatabase } from '@kirana/db';
+import { openDatabase, seedDemoBoard } from '@kirana/db';
 import type { BoardResponse } from '@kirana/shared';
 
 export const COSTCO = 'Costco';
@@ -44,7 +44,128 @@ export function resetAddItemState(): void {
   }
 }
 
-async function boardOf(request: APIRequestContext): Promise<BoardResponse> {
+function deleteItemsByIds(
+  db: ReturnType<typeof openDatabase>,
+  ids: readonly string[],
+): void {
+  if (ids.length === 0) return;
+  const placeholders = ids.map(() => '?').join(', ');
+  db.prepare(`DELETE FROM list_items WHERE item_id IN (${placeholders})`).run(...ids);
+  db.prepare(`DELETE FROM item_store_stats WHERE item_id IN (${placeholders})`).run(...ids);
+  db.prepare(`DELETE FROM item_aliases WHERE item_id IN (${placeholders})`).run(...ids);
+  db.prepare(`DELETE FROM item_search WHERE item_id IN (${placeholders})`).run(...ids);
+  db.prepare(`DELETE FROM items WHERE id IN (${placeholders})`).run(...ids);
+}
+
+/** Remove the import-roundtrip spec's artifacts: the stores it created, every
+ *  item named `Import …`, and the household categories import created.
+ *  Direct DB access (same pattern as resetAddItemState) — there is no bulk
+ *  delete API, and hard deletes keep the demo baseline exact. */
+export function removeImportArtifacts(): void {
+  const db = openDatabase(DB_FILE);
+  try {
+    db.transaction(() => {
+      const stores = db
+        .prepare("SELECT id FROM stores WHERE name IN ('Import Mart', 'Import Bazaar')")
+        .all() as Array<{ id: string }>;
+      if (stores.length > 0) {
+        const placeholders = stores.map(() => '?').join(', ');
+        const ids = stores.map((s) => s.id);
+        db.prepare(`DELETE FROM list_items WHERE store_id IN (${placeholders})`).run(...ids);
+        db.prepare(`DELETE FROM item_store_stats WHERE store_id IN (${placeholders})`).run(...ids);
+        db.prepare(`DELETE FROM stores WHERE id IN (${placeholders})`).run(...ids);
+      }
+      const items = db
+        .prepare("SELECT id FROM items WHERE name LIKE 'Import %'")
+        .all() as Array<{ id: string }>;
+      deleteItemsByIds(db, items.map((i) => i.id));
+      db.prepare(
+        "DELETE FROM categories WHERE household_id IS NOT NULL AND name LIKE 'Import Aisle %'",
+      ).run();
+    })();
+  } finally {
+    db.close();
+  }
+}
+
+/** Remove the merge-items spec's artifacts (source, target, and the rows the
+ *  merge moved — they all reference one of the two items). */
+export function removeMergeArtifacts(): void {
+  const db = openDatabase(DB_FILE);
+  try {
+    db.transaction(() => {
+      const items = db
+        .prepare("SELECT id FROM items WHERE name LIKE 'Merge Source %' OR name LIKE 'Merge Target %'")
+        .all() as Array<{ id: string }>;
+      deleteItemsByIds(db, items.map((i) => i.id));
+    })();
+  } finally {
+    db.close();
+  }
+}
+
+/** Live catalog item count (soft-deletes excluded). */
+export function catalogItemCount(): number {
+  const db = openDatabase(DB_FILE);
+  try {
+    return (db.prepare('SELECT COUNT(*) AS n FROM items WHERE deleted_at IS NULL').get() as { n: number }).n;
+  } finally {
+    db.close();
+  }
+}
+
+/** Count of live items with an exact display name. */
+export function itemCountByName(name: string): number {
+  const db = openDatabase(DB_FILE);
+  try {
+    return (db.prepare('SELECT COUNT(*) AS n FROM items WHERE name = ? AND deleted_at IS NULL').get(name) as { n: number }).n;
+  } finally {
+    db.close();
+  }
+}
+
+/** §15.3 G3.3 wipe: remove every household-owned row so a JSON import has to
+ *  rebuild the board. Households, members, and the global seed categories
+ *  (the §6.5 'Other' fallback lives there) survive. item_search is maintained
+ *  by its triggers. */
+export function wipeHouseholdData(): void {
+  const db = openDatabase(DB_FILE);
+  try {
+    wipeHouseholdDataIn(db);
+  } finally {
+    db.close();
+  }
+}
+
+function wipeHouseholdDataIn(db: ReturnType<typeof openDatabase>): void {
+  db.transaction(() => {
+    db.prepare('DELETE FROM list_items').run();
+    db.prepare('DELETE FROM item_store_stats').run();
+    db.prepare('DELETE FROM item_aliases').run();
+    db.prepare('DELETE FROM item_search').run();
+    db.prepare('DELETE FROM items').run();
+    db.prepare('DELETE FROM stores').run();
+    db.prepare('DELETE FROM categories WHERE household_id IS NOT NULL').run();
+  })();
+}
+
+/** Back to the canonical demo board after the G3.3 wipe/restore drill. The
+ *  import model rebuilds list rows but not the full catalog (seed items with
+ *  no list rows have nothing to import from) and re-creates categories with
+ *  fresh sort orders, so the specs that follow must start from the seed.
+ *  seedDemoBoard is idempotent: it only acts when the household has no
+ *  stores, and every insert is INSERT OR IGNORE. */
+export function restoreDemoBoard(): void {
+  const db = openDatabase(DB_FILE);
+  try {
+    wipeHouseholdDataIn(db);
+    seedDemoBoard(db, Date.now());
+  } finally {
+    db.close();
+  }
+}
+
+export async function boardOf(request: APIRequestContext): Promise<BoardResponse> {
   const res = await request.get('/api/v1/board');
   expect(res.ok()).toBeTruthy();
   return (await res.json()) as BoardResponse;

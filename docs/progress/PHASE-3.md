@@ -10,9 +10,8 @@ Gates: G3.1–G3.6.
 - T-P3-02 — import preview/commit + export JSON/CSV + admin backup (backend) ✅
 - T-P3-03 — web: Catalog browser + item detail (aliases, merge) ✅
 - T-P3-04 — web: Stores + Categories management, per-store aisle ordering (drag) ✅
-- T-P3-05 — web: Data screen (import preview/commit, export, backup)
-- T-P3-05 — web: Data screen (import preview/commit, export, backup)
-- T-P3-06 — e2e import-roundtrip.spec.ts + phase close (G3.2–G3.6)
+- T-P3-05 — web: Data screen (import preview/commit, export, backup) ✅
+- T-P3-06 — e2e import-roundtrip.spec.ts + phase close (G3.2–G3.6) ✅
 
 ## Session log
 
@@ -345,20 +344,101 @@ Learned:    (a) The e2e webServer env sets no DATA_DIR, so the server
 Next:       T-P3-06 — e2e import-roundtrip.spec.ts + phase close
             (G3.2–G3.6) — lane D card; R-013 unblocks its backup specs.
 
-## Handoff (T-P3-01)
+## 2026-11-16 — lane D — T-P3-06 (e2e import round-trip + phase close)
 
-Done:        T-P3-01 (contract v1.2 + items/aliases/merge/categories APIs,
-             25 new tests, verify green).
-Next:        T-P3-02 — import/export/backup backend (§9.1–9.4, §12.4).
-Blocked:     none. Note: G1.2 perf gate is box-load-sensitive (see Learned a).
-Files:       shared/src/contracts.ts, scripts/gen-openapi.ts, openapi.json,
-             docs/DECISIONS/ADR-0003-item-detail-read.md,
-             server/services/{items.ts,categories.ts,catalog.ts},
-             server/routes/{items.ts,categories.ts},
-             server/__tests__/{items-management,categories-crud}.test.ts.
-Tests:       `pnpm verify` (257 green: 91+32+8+126) + contracts:check green.
-Context:     Branch feat/p3/items-management off main@6918fc5 (P1.5 squash-
-             merged + tagged phase-1.5-complete). Migration lock: next 0003
-             untouched. Contracts now v1.2 (additive). The :8080 demo container
-             runs the P1.5 image (rebuilt this session pre-P3; rebuild after
-             the web screens land).
+Built:      R-013: DATA_DIR (e2e/.tmp) added to the Playwright webServer
+            env — POST /admin/backup works in the harness. Three committed
+            specs (× mobile-chrome 375×667 + pixel-7): import-roundtrip —
+            G3.2 200-row CSV fixture (189 new + 1 in-file conflict pair +
+            8 name-match merges + 1 invalid): preview counts "190 new · 8
+            duplicates · 1 conflicts · 1 invalid" + review line, per-row
+            decision select drives the commit count, conflict pair defaults
+            (create/skip), commit → "Imported 198 items across 2 stores.",
+            re-import previews "0 new" and a second commit leaves the
+            catalog item count and the single 'Import Conflict Chips' item
+            untouched; backup (§12.4): "Backup saved:
+            kirana-YYYYMMDD-HHMMSS.db.gz" + file exists under
+            e2e/.tmp/backups; CSV export (§9.4): §9.1 header + demo rows +
+            content-disposition filename. G3.3 export → wipe → import
+            through the real client path (blob download feeds the file
+            input): 20 rows restored with identical row counts, per-store
+            row names, and store names; Home re-renders "5/9/6 to buy".
+            aisle-order (G3.4): keyboard reorder (Space grab → arrows →
+            Space drop, live-region strings) moves Snacks & Namkeen to the
+            top of Costco's aisle list, PATCH persists (board
+            categoryOrder[0] polled + reload), Home's Costco card now
+            leads with Biscuits, and Indian Store's order stays [].
+            merge-items (G3.5): API-seeded disposable pair + alias;
+            confirm sheet with "This cannot be undone." — Escape aborts
+            (both items survive), confirm merges → target detail shows the
+            moved alias, source 404s and is absent from catalog search
+            (which surfaces the kept item via the carried-over alias),
+            board shows 2 target rows and 0 source rows.
+            support.ts: removeImportArtifacts/removeMergeArtifacts (direct
+            DB cleanup, FTS triggers respected), catalogItemCount/
+            itemCountByName, wipeHouseholdData, restoreDemoBoard (wipe +
+            idempotent seedDemoBoard re-seed) — exported boardOf.
+Tests:      `pnpm e2e` 92/92 (was 80; +12 = 3 specs × 2 viewports).
+            `pnpm verify` green: 91 shared + 32 db + 37 web + 167 server.
+            `pnpm contracts:check` green (v1.3 untouched).
+Decisions:  (1) G3.4/G3.5's earlier evidence was throwaway specs (deleted
+            after T-P3-03/04 runs) — dedicated committed specs keep every
+            P3 gate reproducible from a clean clone (§16 gate checklist
+            item 1). (2) G3.3 wipes via direct DB (no wipe endpoint;
+            §12.5 restore drills are P5) and restores the canonical demo
+            board in afterEach: the import model rebuilds list rows but
+            not orphan seed items (40 → 20 items) and re-creates
+            household-scope categories as grocery-scope rows (R-014), so
+            the raw restored board is not the demo board; the gate's "row
+            counts and names" is asserted on the restore itself. (3)
+            Conflict rows render no per-row message in the UI (only error
+            rows do) — the spec asserts the decidable selects' defaults
+            (create/skip) instead of a message string. (4) The atomicity
+            half of G3.2 is evidenced by the server suite
+            (import.test.ts "rejects bad decisions with 400/404 and rolls
+            everything back") — the UI cannot produce a mid-commit
+            failure. (5) The merge spec asserts source-link absence rather
+            than an empty catalog search: the kept item legitimately
+            surfaces because the merge carried the source's alias over
+            (search continuity).
+Deviations: None to the PRD. Contract unchanged (v1.3); no migration —
+            lock stays 0003. R-014 filed (open, lane A) for the import
+            category-scope quirk discovered by G3.3; not a gate blocker.
+Learned:    (a) Playwright evaluate/evaluateAll callbacks do not close
+            over test scope — pass values as the arg parameter. (b) A spec
+            that wipes shared state must restore a pristine baseline in
+            afterEach, not just delete its own artifacts — otherwise the
+            failure cascades into every later file (G3.3's category
+            re-creation re-ordered Costco's aisles and broke shop-mode).
+            (c) evaluateAll on an already-filtered locator enumerates only
+            the matches — read positions from the unfiltered handle list.
+            (d) expect(locator).toHaveValue works on <select> to pin the
+            default decision. (e) The e2e webServer env is the only place
+            the harness server's DATA_DIR comes from; keep it beside
+            DATABASE_URL.
+Next:       P4 — household, sync, PWA per PRD §15.3 (new phase file +
+            cards; lanes A+B+D).
+
+## Handoff (P3 complete)
+
+Done:        T-P3-01…T-P3-06. Gates evidenced: G3.1 server integration
+             (items-management, categories-crud) + committed e2e CRUD/
+             management specs; G3.2 + G3.3 import-roundtrip.spec.ts;
+             G3.4 aisle-order.spec.ts; G3.5 merge-items.spec.ts; G3.6 the
+             spec itself green. Demo script: the suite runs end-to-end
+             against the seedDemoBoard demo board (global-setup).
+Tests:       327 unit/integration (91+32+37+167) + 92 e2e green from a
+             clean checkout; `pnpm verify` + `pnpm contracts:check` green.
+Contract:    shared/contracts.ts @ v1.3 (ADR-0003, ADR-0004); openapi.json
+             current; schema hash 0002; migration lock: next 0003.
+Branch/tag:  feat/p3/items-management; tag phase-3-complete on the phase
+             close commit. Push pending (branch was 3 ahead before this
+             session; push both together).
+Open items:  R-014 (lane A, import category scope); BACKLOG: alias
+             soft-delete needs migration 0003; PUT /stores/:id/
+             category-order (#27) unimplemented by design; JSON import
+             restores rows as active (statuses not carried); store icons
+             reset to 🏬 on import.
+Next:        P4 — household, sync, PWA per PRD §15.3. Lanes: A (sync
+             backend), B (PWA shell), D (phase file + e2e). Start by
+             creating docs/progress/PHASE-4.md from §15.3's P4 card.

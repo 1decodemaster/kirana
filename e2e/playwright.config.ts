@@ -35,6 +35,9 @@ export default defineConfig({
       KIRANA_REVISION: 'e2e',
       LOG_LEVEL: 'warn',
       DATABASE_URL: path.join(process.cwd(), '.tmp', 'kirana.db'),
+      // R-013: the server defaults dataDir to /data (the container volume),
+      // which EACCESes on this host — POST /admin/backup needs a writable dir.
+      DATA_DIR: path.join(process.cwd(), '.tmp'),
     },
   },
 });

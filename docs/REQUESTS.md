@@ -22,4 +22,19 @@ block in `e2e/playwright.config.ts`. The server config defaults dataDir to
 (EACCES mkdir '/data') in the e2e harness. Verified the UI flow works
 against a server started with a writable DATA_DIR.
 Blocking: no (backup UI verified manually; blocks only committed backup specs)
+Status: done — T-P3-06 added the env line; backup e2e green in the harness.
+
+## R-014 — Backend: import category resolution ignores household-scope categories
+From: QA/e2e (T-P3-06, G3.3 round-trip)
+Needed by: any future import polish; not a P3 gate blocker
+Ask: `ensureCategory` (server/services/importCommit.ts) matches only
+`scope = 'grocery'`, so a CSV/JSON import of 'Cleaning Supplies' (a
+household-scope seed category) re-creates it as a grocery-scope row. The
+restored board then shows the name twice in /categories and the rows move
+to a fresh category with max sort order (aisle order drifts). PRD §9.2
+says category names are matched to "existing rows" with no scope
+qualifier. Suggest matching by name_norm across scopes (prefer
+household-owned, then seed), or an ADR if grocery-only is intended.
+Blocking: no (G3.3 gate is row counts + names and passes; noted as a
+known import limitation in the phase log)
 Status: open
