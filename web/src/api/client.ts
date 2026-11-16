@@ -48,7 +48,48 @@ export async function api<T>(path: string, options: RequestOptions): Promise<T> 
   } catch (cause: unknown) {
     throw new NetworkError(cause);
   }
+  return parseResponse<T>(response);
+}
 
+/** multipart upload (§7.2 #28): the browser sets the boundary header. */
+export async function postForm<T>(path: string, form: FormData): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(`${BASE}${path}`, {
+      method: 'POST',
+      headers: { 'x-requested-with': 'kirana' },
+      body: form,
+    });
+  } catch (cause: unknown) {
+    throw new NetworkError(cause);
+  }
+  return parseResponse<T>(response);
+}
+
+/** Trigger a browser download for a GET endpoint (§9.4 export). The server's
+ *  content-disposition filename wins when present. */
+export async function download(path: string, fallbackName: string): Promise<void> {
+  let response: Response;
+  try {
+    response = await fetch(`${BASE}${path}`, { headers: { 'x-requested-with': 'kirana' } });
+  } catch (cause: unknown) {
+    throw new NetworkError(cause);
+  }
+  if (!response.ok) return parseResponse(response) as never;
+  const disposition = response.headers.get('content-disposition') ?? '';
+  const match = /filename="([^"]+)"/.exec(disposition);
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = match?.[1] ?? fallbackName;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function parseResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const raw: unknown = await response.json().catch(() => undefined);
     if (

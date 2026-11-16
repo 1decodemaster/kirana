@@ -9,7 +9,8 @@ Gates: G3.1–G3.6.
 - T-P3-01 — item & category management APIs (backend) ✅
 - T-P3-02 — import preview/commit + export JSON/CSV + admin backup (backend) ✅
 - T-P3-03 — web: Catalog browser + item detail (aliases, merge) ✅
-- T-P3-04 — web: Stores + Categories management, per-store aisle ordering (drag)
+- T-P3-04 — web: Stores + Categories management, per-store aisle ordering (drag) ✅
+- T-P3-05 — web: Data screen (import preview/commit, export, backup)
 - T-P3-05 — web: Data screen (import preview/commit, export, backup)
 - T-P3-06 — e2e import-roundtrip.spec.ts + phase close (G3.2–G3.6)
 
@@ -279,6 +280,70 @@ Learned:    (a) Implicit pointer capture is released when the captured
             keyboard reorder covers long lists (BACKLOG note added).
 Next:       T-P3-05 — web Data screen (import preview/commit, export,
             backup) — §8.1 /data, §9.2–9.4, §12.4; contract v1.3 frozen.
+
+## 2026-11-15 — lane B — T-P3-05 (web Data screen: import/export/backup)
+
+Built:      /data (§8.1, §9.2–9.4): Import card — file picker (CSV or export
+            JSON; multipart via a new postForm client helper, browser-set
+            boundary), preview summary "{n} new · {d} duplicates · {c}
+            conflicts · {i} invalid" + the §8.10 conflict line when
+            duplicates+conflicts exist, per-row review list (store ·
+            category · qty/unit, merge rows show "→ {target}", error rows
+            show the message with no decision control) and a per-row
+            decision select (Create new / Merge into {target} / Skip,
+            options gated by the preview action); commit sends one decision
+            per non-error line (§7.2 #29) — a target-less merge downgrades
+            to skip rather than failing the whole commit; success copy
+            "Imported {n} items across {m} stores." (m = distinct stores
+            among committed rows, lib/importRows.ts), "No rows were
+            imported." when all skipped; Start over / Import another file.
+            Export card — GET /export?format=json and ?format=csv&storeId=
+            downloads via a new download() client helper (blob + objectURL,
+            content-disposition filename honoured, fallback
+            kirana-export-YYYY-MM-DD.json), store select for CSV.
+            Backup card — POST /admin/backup → "Backup saved: {file}".
+            api/queries.ts: useImportPreview, useImportCommit (invalidates
+            board + categories + items), useAdminBackup.
+Tests:      `pnpm verify` green: 91 shared + 32 db + 37 web (was 30; +7
+            importRows: initial/override decisions, committedRows counts,
+            commit payload incl. target-less-merge downgrade, distinct
+            stores) + 167 server. Throwaway Playwright smoke (5 specs ×
+            mobile-chrome 375×667 + pixel-7, deleted after the run): preview
+            diff counts on a file with a new row + an in-file conflict + an
+            existing-item merge, decision override flips the commit-button
+            count, commit → success copy with store count, re-import shows
+            0 new, JSON export downloads and parses (schemaVersion + items),
+            CSV export carries the §9.1 header + a known item, backup
+            reports the saved file (run against a locally started server
+            with a writable DATA_DIR — see R-013).
+Decisions:  (1) New microcopy added to §8.10 in the same change (import
+            hint/reading/summary/action/start over/another/row actions/
+            nothing/empty action, file chosen, export buttons, backup
+            section); the deck's existing "Import success"/"Import
+            conflict" rows are reused verbatim. (2) Preview rows render in
+            full (no virtualization) — the G3.2 gate is a 200-row file and
+            MAX_IMPORT_ROWS=5000 is a hard cap, not a demo shape; revisit
+            only if a real household hits it. (3) Exports download via
+            fetch+blob (not navigation) so failures surface as a banner and
+            the filename can honour content-disposition. (4) Commit
+            invalidates board + categories + items — a commit can create
+            stores/categories/items/aliases/rows/stats. (5) Backup errors
+            surface the server message; the e2e-harness root cause is R-013.
+Deviations: None to the PRD. Contract unchanged (v1.3).
+Learned:    (a) The e2e webServer env sets no DATA_DIR, so the server
+            default (/data, the container volume) makes POST /admin/backup
+            500 with EACCES in the harness; verified against a locally
+            started server with DATA_DIR set and filed R-013 for lane D.
+            (b) services/csv.ts emits RFC 4180 CRLF — normalize \r\n before
+            line-wise spec assertions. (c) An sr-only file input still
+            accepts setInputFiles, and the button+hidden-input pattern
+            keeps the picker keyboard-accessible. (d) Do NOT pkill -f
+            "server/dist/index.js" on this box: the demo Docker container
+            (8080) runs the same command line and respawns — kill debug
+            instances by port. (e) Playwright download.path() + fs.readFile
+            verifies export content cheaply, no extra server round-trip.
+Next:       T-P3-06 — e2e import-roundtrip.spec.ts + phase close
+            (G3.2–G3.6) — lane D card; R-013 unblocks its backup specs.
 
 ## Handoff (T-P3-01)
 

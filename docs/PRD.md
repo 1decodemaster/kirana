@@ -1161,6 +1161,23 @@ Server returns `matchedVia: 'name' | 'alias' | 'fuzzy'` and `inStore: boolean` s
 | Reorder moved | "Position {n} of {total}." |
 | Reorder dropped | "{name} dropped." |
 | Reorder cancelled | "Reorder cancelled." |
+| Data import hint | "Choose a CSV or an export file to preview." |
+| Data import reading | "Reading file…" |
+| Data import summary | "{n} new · {d} duplicates · {c} conflicts · {i} invalid" |
+| Data import action | "Import {n} items" |
+| Data import start over | "Start over" |
+| Data import another | "Import another file" |
+| Data import row actions | "Create new" / "Merge into {name}" / "Skip" |
+| Data import nothing | "No rows were imported." |
+| Data import empty action | "Nothing to import" |
+| Data file chosen | "File: {name}" |
+| Data export section | "Export" |
+| Data export everything | "Export everything (JSON)" |
+| Data export store CSV | "Export store CSV" |
+| Data backup section | "Backup" |
+| Data backup hint | "A snapshot of the whole database, saved on the host." |
+| Data backup action | "Create backup" |
+| Data backup saved | "Backup saved: {file}" |
 
 * * *
 

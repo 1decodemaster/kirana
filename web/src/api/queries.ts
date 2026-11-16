@@ -3,6 +3,7 @@ import type {
   AddListItemRequest,
   AddListItemResponse,
   AliasMutationResponse,
+  AdminBackupResponse,
   BoardResponse,
   BulkCheckResponse,
   CategoriesResponse,
@@ -15,6 +16,9 @@ import type {
   DeletedResponse,
   GetItemResponse,
   GetItemsResponse,
+  ImportCommitRequest,
+  ImportCommitResponse,
+  ImportPreviewResponse,
   ItemMutationResponse,
   ListItemMutationResponse,
   MergeItemsRequest,
@@ -25,7 +29,7 @@ import type {
   UpdateItemRequest,
   UpdateStoreRequest,
 } from '@kirana/shared';
-import { del, get, patch, post } from './client.js';
+import { del, get, patch, post, postForm } from './client.js';
 import {
   applyBulkCheck,
   applyCategorySortOrder,
@@ -544,5 +548,38 @@ export function useSetAisleOrder() {
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: BOARD_KEY });
     },
+  });
+}
+
+// ─── Data (§8.1 /data; §7.2 #28–30, #33; §9) ────────────────────────────────
+
+export function useImportPreview() {
+  return useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData();
+      form.append('file', file);
+      return postForm<ImportPreviewResponse>('/import/preview', form);
+    },
+  });
+}
+
+export function useImportCommit() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: ImportCommitRequest) =>
+      post<ImportCommitResponse>('/import/commit', body),
+    onSettled: () => {
+      // A commit can create stores, categories, items, aliases, list rows
+      // and stats — everything the board and management screens read.
+      void queryClient.invalidateQueries({ queryKey: BOARD_KEY });
+      void queryClient.invalidateQueries({ queryKey: CATEGORIES_KEY });
+      void queryClient.invalidateQueries({ queryKey: ['items'] });
+    },
+  });
+}
+
+export function useAdminBackup() {
+  return useMutation({
+    mutationFn: () => post<AdminBackupResponse>('/admin/backup'),
   });
 }
