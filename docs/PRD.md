@@ -1126,6 +1126,22 @@ Server returns `matchedVia: 'name' | 'alias' | 'fuzzy'` and `inStore: boolean` s
 | Shop Mode empty | "Nothing to buy here." |
 | Shop Mode back action | "Back to Home" |
 | Shop Mode not found | "Store not found." |
+| Catalog search field | "Search catalog" |
+| Catalog search empty | "No matches for "{query}"." |
+| Empty catalog | "No catalog items yet. Add items from any store list." |
+| Empty catalog action | "Go to Home" |
+| Load more | "Load more" / "Loading…" |
+| Uncategorized group | "Uncategorized" |
+| Item detail back action | "Back to catalog" |
+| Item not found | "Item not found." |
+| Item stats | "Never added" / "Added {n} time(s)" / "Last added {date}" / "{n} store(s)" |
+| Merge item action | "Merge with another item…" |
+| Merge pick hint | "Search for the item you want to keep." |
+| Merge confirm | "Merge {source} into {target}? List entries, aliases and stats move to the item you keep. This cannot be undone." |
+| Item delete confirm | "Delete {name} from the catalog? Items on lists stay and show as "Archived item"." |
+| Alias languages | "English" / "Hindi (Latin)" / "Hindi (Devanagari)" |
+| Alias remove confirm | "Remove alias "{alias}"?" |
+| Alias conflict action | "Go to {name}" |
 
 * * *
 

@@ -1,17 +1,24 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   AddListItemRequest,
   AddListItemResponse,
+  AliasMutationResponse,
   BoardResponse,
   BulkCheckResponse,
   ClearBoughtResponse,
+  CreateAliasRequest,
   CreateItemRequest,
   CreateStoreRequest,
   DeletedResponse,
+  GetItemResponse,
+  GetItemsResponse,
   ItemMutationResponse,
   ListItemMutationResponse,
+  MergeItemsRequest,
+  MergeItemsResponse,
   PatchListItemRequest,
   StoreMutationResponse,
+  UpdateItemRequest,
   UpdateStoreRequest,
 } from '@kirana/shared';
 import { del, get, patch, post } from './client.js';
@@ -281,6 +288,100 @@ export function useDeleteStore() {
       }
     },
     onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: BOARD_KEY });
+    },
+  });
+}
+
+// ─── Catalog (§8.1 /catalog, /catalog/:id; §7.2 #16–26) ────────────────────
+
+export const ITEMS_PAGE_SIZE = 50;
+
+export interface ItemsQueryInput {
+  /** Empty string browses the whole catalog; otherwise ranked search. */
+  readonly q: string;
+}
+
+/** GET /items — cursor-paginated browse or ranked search (§8.6). */
+export function useItems(input: ItemsQueryInput) {
+  return useInfiniteQuery({
+    queryKey: ['items', input],
+    queryFn: ({ pageParam, signal }) => {
+      const params = new URLSearchParams({ limit: String(ITEMS_PAGE_SIZE) });
+      if (input.q !== '') params.set('q', input.q);
+      if (pageParam !== '') params.set('cursor', pageParam);
+      return get<GetItemsResponse>(`/items?${params.toString()}`, signal);
+    },
+    initialPageParam: '',
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useItem(id: string) {
+  return useQuery({
+    queryKey: ['item', id],
+    queryFn: ({ signal }) => get<GetItemResponse>(`/items/${id}`, signal),
+  });
+}
+
+export function usePatchItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: string; patch: UpdateItemRequest }) =>
+      patch<ItemMutationResponse>(`/items/${input.id}`, input.patch).then((r) => r.item),
+    onSettled: (_item, _error, input) => {
+      void queryClient.invalidateQueries({ queryKey: ['item', input.id] });
+      void queryClient.invalidateQueries({ queryKey: ['items'] });
+      void queryClient.invalidateQueries({ queryKey: BOARD_KEY });
+    },
+  });
+}
+
+export function useDeleteItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => del<DeletedResponse>(`/items/${id}`),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ['items'] });
+      void queryClient.invalidateQueries({ queryKey: BOARD_KEY });
+    },
+  });
+}
+
+export function useCreateAlias() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { itemId: string; body: CreateAliasRequest }) =>
+      post<AliasMutationResponse>(`/items/${input.itemId}/aliases`, input.body).then((r) => r.alias),
+    onSettled: (_alias, _error, input) => {
+      void queryClient.invalidateQueries({ queryKey: ['item', input.itemId] });
+      void queryClient.invalidateQueries({ queryKey: BOARD_KEY });
+    },
+  });
+}
+
+export function useDeleteAlias() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { itemId: string; aliasId: string }) =>
+      del<DeletedResponse>(`/items/${input.itemId}/aliases/${input.aliasId}`),
+    onSettled: (_data, _error, input) => {
+      void queryClient.invalidateQueries({ queryKey: ['item', input.itemId] });
+      void queryClient.invalidateQueries({ queryKey: BOARD_KEY });
+    },
+  });
+}
+
+export function useMergeItems() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: MergeItemsRequest) =>
+      post<MergeItemsResponse>('/items/merge', input).then((r) => r.item),
+    onSettled: (_item, _error, input) => {
+      void queryClient.invalidateQueries({ queryKey: ['item', input.sourceId] });
+      void queryClient.invalidateQueries({ queryKey: ['item', input.targetId] });
+      void queryClient.invalidateQueries({ queryKey: ['items'] });
       void queryClient.invalidateQueries({ queryKey: BOARD_KEY });
     },
   });

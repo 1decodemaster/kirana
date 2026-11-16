@@ -145,6 +145,67 @@ Learned:    (a) Two seed stores + `{ otherStoreId, … }` shorthand instead of
 Next:       T-P3-03 — web Catalog browser + item detail (§8.1; contract v1.3
             frozen, mocks not needed — real endpoints exist).
 
+## 2026-11-15 — lane B — T-P3-03 (web Catalog browser + item detail)
+
+Built:      /catalog (§8.1): 80ms-debounced server search (GET /items,
+            ranked per §8.6) over a cursor-paginated browse (limit 50,
+            keepPreviousData so key swaps never flash a skeleton); browse
+            mode groups by default category (§8.2 4px left-border section
+            headers, sortOrder order, uncategorized last); search mode is a
+            flat ranked list; empty/loading/error states per §8.7; "Load
+            more" for the next cursor.
+            /catalog/:id (ADR-0003 read): header with back action, name and
+            a stats meta line (times added, last added UTC day, store
+            count); Defaults card (category/unit/qty) with an edit sheet;
+            Aliases card (lang chips, add sheet with en/hi-Latn/hi picker,
+            remove with confirm — hard row delete per ADR-0003, so UI
+            confirms first); merge flow (target picker sheet → G3.5
+            irreversible confirm → POST /items/merge → navigates to the
+            target's detail); delete item with confirm (INV-6 soft delete)
+            → back to /catalog. Alias 409 ITEM_NEAR_DUPLICATE renders the
+            server message plus a "Go to {name}" jump to the colliding item
+            (from details.suggestions).
+            api/queries.ts: useItems (useInfiniteQuery), useItem,
+            usePatchItem, useDeleteItem, useCreateAlias, useDeleteAlias,
+            useMergeItems — all invalidate ['item', id] + ['items'] + board.
+Tests:      `pnpm verify` green: 91 shared + 32 db + 13 web (was 8; +5:
+            catalogGroups 4, formatDay 1) + 167 server. Playwright smoke
+            (throwaway spec, deleted after the run — the committed e2e is
+            T-P3-06): 12/12 green on mobile-chrome 375×667 + pixel-7,
+            covering browse groups, detail nav, alias add/remove
+            round-trip, merge sheet + Escape, search empty state, and the
+            keyboard path (skip link → search → row → Enter → detail).
+Decisions:  (1) New microcopy added to §8.10 in this same change per
+            AGENTS.md §5 (empty catalog, search-empty, load more, back to
+            catalog, item not found, stats meta, merge/delete/alias
+            confirms, alias languages, "Go to {name}", "Uncategorized").
+            (2) The browser uses server search/browse (GET /items) rather
+            than the board's catalog snapshot — the snapshot is capped at
+            5,000 (catalogTruncated) and has no cursoring; /items is the
+            authoritative browse surface. (3) ItemStats derived locally as
+            GetItemResponse['stats'] — exporting CatalogStats from shared
+            would be a contract PR + ADR for a type alias; not worth it.
+            (4) useItems sets keepPreviousData so each keystroke keeps the
+            previous list visible instead of skeleton-flashing.
+Deviations: None to the PRD. Test-environment note: on emulated touch
+            viewports (pixel-7 project) Tab from a *typed* text field drops
+            focus to <body> — a headless-Chromium emulation quirk (browse-
+            mode Tab works on the same project); T-P3-06's committed
+            keyboard spec should avoid Tab-after-type assertions.
+Learned:    (a) pnpm lives in ~/.local/share/pnpm/bin and node 22 in
+            ~/.nvm/versions/node/v22.23.2/bin — neither is on this shell's
+            default PATH; export both before any pnpm command (node 18
+            otherwise breaks vitest/eslint on node:util.styleText). (b) The
+            e2e harness boots its own server on 8090 from web/dist with a
+            fresh seeded DB (global-setup) — ideal for smoke-testing a
+            freshly built bundle without touching the :8080 demo container.
+            (c) React Query hashes query keys structurally, so
+            ['items', { q }] is stable across renders. (d) Plain Sheet is
+            fine for form sheets; vaul's Drawer stays add-sheet-only.
+Next:       T-P3-04 — web: Stores + Categories management, per-store aisle
+            ordering (drag) (§8.1; PATCH /stores/:id {categoryOrder}
+            already in the contract).
+
 ## Handoff (T-P3-01)
 
 Done:        T-P3-01 (contract v1.2 + items/aliases/merge/categories APIs,

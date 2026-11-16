@@ -16,3 +16,8 @@ export function itemAriaLabel(
   const qty = qtyText(item);
   return [item.name, qty || undefined, categoryName].filter(Boolean).join(', ');
 }
+
+/** "2026-11-15" — UTC day of an epoch-ms timestamp (item-detail history). */
+export function formatDay(epochMs: number): string {
+  return new Date(epochMs).toISOString().slice(0, 10);
+}
