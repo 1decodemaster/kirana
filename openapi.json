@@ -5752,6 +5752,11 @@
                         ],
                         "additionalProperties": false
                       }
+                    },
+                    "token": {
+                      "type": "string",
+                      "minLength": 10,
+                      "maxLength": 512
                     }
                   },
                   "required": [
@@ -5759,7 +5764,8 @@
                     "duplicate",
                     "conflict",
                     "invalid",
-                    "rows"
+                    "rows",
+                    "token"
                   ],
                   "additionalProperties": false
                 }

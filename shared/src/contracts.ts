@@ -307,6 +307,7 @@ export const importPreviewResponseSchema = z.object({
   conflict: z.number().int().nonnegative(),
   invalid: z.number().int().nonnegative(),
   rows: z.array(importRowDtoSchema),
+  token: z.string().min(10).max(512),
 });
 export const importDecisionSchema = z.object({
   line: z.number().int().nonnegative(),
