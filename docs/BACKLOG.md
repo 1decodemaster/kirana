@@ -6,6 +6,16 @@ for v1 (PRD §1.5). Do not implement ahead — write it here instead (AGENTS.md 
 - [P3?] `item_aliases` has no `deleted_at` — alias removal is a hard row
   delete (UI confirms first). If soft-deleted aliases ever matter, claim
   migration 0003 for a `deleted_at` column + partial-index rethink.
+- [P5] Nightly 03:00 backup (§12.4/NFR-11) is host cron / sidecar work, not
+  in-process: `sqlite3 kirana.db ".backup …"` + gzip with the date-only name,
+  or reuse POST /admin/backup. Needed before the P5 restore drill. The
+  on-demand endpoint already prunes (14 daily + 8 weekly).
+- [P3?] JSON import restores list rows as `active` — the §9.3 preview/commit
+  model (contract #29) carries no list-row status, so a restore from
+  `GET /export?format=json` loses bought/cleared states. If byte-exact
+  restore ever matters, that is a contract v1.4 addition (status on import
+  rows) + ADR. CSV round-trip has the same shape by design (no status column
+  in §9.1; cleared rows are excluded from CSV export on purpose).
 - [P3] `PUT /stores/:id/category-order` (contract #27) — drag-reorder UI ships
   in P3; `PATCH /stores/:id {categoryOrder}` already covers the API need.
 - [P3] Server-side quick-parse defense: §6.3 is a sheet behavior, so a raw

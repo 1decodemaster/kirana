@@ -6,8 +6,8 @@ Gates: G3.1–G3.6.
 
 ## Task cards
 
-- T-P3-01 — item & category management APIs (backend) ← current
-- T-P3-02 — import preview/commit + export JSON/CSV + admin backup (backend)
+- T-P3-01 — item & category management APIs (backend) ✅
+- T-P3-02 — import preview/commit + export JSON/CSV + admin backup (backend) ✅
 - T-P3-03 — web: Catalog browser + item detail (aliases, merge)
 - T-P3-04 — web: Stores + Categories management, per-store aisle ordering (drag)
 - T-P3-05 — web: Data screen (import preview/commit, export, backup)
@@ -72,7 +72,80 @@ Learned:    (a) board.perf (G1.2, p95 ≤ 50ms @ 2k rows) is load-sensitive on
 Next:       T-P3-02 — import preview/commit + export + admin backup (§9,
             §12.4; contract #28–30/#33 schemas already exist at v1.2).
 
-## Handoff
+## 2026-11-15 — lane A — T-P3-02 (import/export/backup backend)
+
+Built:      Contract v1.2 → v1.3 (ADR-0004): importPreviewResponseSchema
+            gains `token` — §9.3 step 4 makes it the commit request's input,
+            but the drafted schema had no field carrying it. Purely additive;
+            openapi.json regenerated. Server (§7.2 #28–30/#33, §9.1–9.4,
+            §12.4): POST /import/preview (multipart CSV or a verbatim /export
+            JSON payload → per-row diff {create|merge|skip|error} + HMAC-signed
+            token, 10-min TTL, in-memory map capped at 20 entries);
+            POST /import/commit (decisions default to their preview action;
+            one transaction — stores/categories/items/aliases/list rows/stats;
+            any failure rolls back everything and keeps the token usable);
+            GET /export?format=json (full dump, contract-validated on the way
+            out) and ?format=csv&storeId= (§9.1 CSV, round-trips through
+            preview); POST /admin/backup (better-sqlite3 online .backup →
+            gzip under <dataDir>/backups, pruned to BACKUP_KEEP_DAILY=14 daily
+            + 8 UTC-week files, wx-flag so it never clobbers). New pure
+            modules: services/csv.ts (RFC 4180), importParse.ts (CSV+JSON →
+            rows, per-row validation, §9.1 alias-language inference),
+            importToken.ts / importPreview.ts / importCommit.ts.
+Tests:      `pnpm verify` green: 91 shared + 32 db + 8 web + 167 server
+            (was 126; +41 across csv/import/export/backup test files).
+            `pnpm contracts:check` green. JSON and CSV round-trips are
+            covered end-to-end in export.test.ts.
+Decisions:  (1) ADR-0004 above — the drafted preview schema simply omitted
+            the token the PRD's own commit step requires. (2) Row semantics:
+            'duplicate' = exact name/alias match or fuzzy edit-ratio ≥ 0.9
+            (matchQuality's fuzzy tier is 0.5·ratio, so the gate is quality
+            ≥ 0.45 — searchScore was considered and rejected: with §8.6
+            weights a fuzzy-only match can never reach 0.9 total, which would
+            make the guard dead code); 'conflict' = same normalized
+            name+store appearing twice in one file (second row defaults to
+            skip; cross-store rows of one item are legitimate and both
+            import); 'invalid' = per-row field validation. (3) Commit
+            response counts catalog items created vs rows attached — a
+            preview 'create' whose item now exists (or was created by an
+            earlier line in the same commit) attaches and counts as merged
+            rather than failing the whole file. (4) Undecided lines keep
+            their preview action; the token is consumed only on success.
+            (5) Import-created aliases use source 'import' (already in the
+            §5.2 CHECK); aliases equal to the item's own name are dropped;
+            merge decisions do not add aliases. (6) CSV export carries
+            active+bought rows only — §9.1 has no status column and
+            re-importing cleared history as active would corrupt it; JSON
+            export carries every status (full dump) but the import model
+            restores rows as active — known limitation, in BACKLOG. (7)
+            Backup files are kirana-YYYYMMDD-HHMMSS.db.gz (seconds precision
+            instead of §12.4's date-only name) so an on-demand backup can
+            never overwrite the nightly's file; retention pruning runs after
+            every create. (8) New dependency @fastify/multipart — official
+            Fastify plugin, required by the committed multipart contract
+            #28; hand-rolling multipart parsing is risk without benefit.
+            (9) Preview tokens are process-memory only — single-process
+            deployment is the PRD's shape; noted for any future
+            multi-instance run.
+Deviations: Contract v1.3 is additive and ADR'd (ADR-0004) — no silent
+            deviation. No migration touched; schema hash stays pinned at 0002.
+Learned:    (a) Two seed stores + `{ otherStoreId, … }` shorthand instead of
+            `storeId: otherStoreId` produces a NOT NULL failure on
+            list_items.store_id that looks like a service bug — vitest
+            (esbuild) does not typecheck, so the smell was "valid-looking
+            call, null binding". `pnpm typecheck` catches it; run it before
+            debugging test failures. (b) light-my-request multipart works
+            fine by hand-rolling the body string with a fixed boundary — no
+            form-data helper needed. (c) better-sqlite3 is a transitive dep
+            here: runtime imports must come from @kirana/db (openDatabase);
+            only `import type` may reference better-sqlite3 directly. (d)
+            matchQuality's fuzzy tier caps at 0.5·ratio — any future feature
+            expecting "fuzzy ≥ 0.9" semantics must decide whether it means
+            edit-ratio or the §8.6 total score; they are not interchangeable.
+Next:       T-P3-03 — web Catalog browser + item detail (§8.1; contract v1.3
+            frozen, mocks not needed — real endpoints exist).
+
+## Handoff (T-P3-01)
 
 Done:        T-P3-01 (contract v1.2 + items/aliases/merge/categories APIs,
              25 new tests, verify green).
