@@ -75,6 +75,18 @@ test('pick-store sheet scrolls to reach every store', async ({ page, request }) 
   const last = dialog.getByRole('button', { name: `🏬 UX Probe A ${PROBE_STORES}` });
   await last.scrollIntoViewIfNeeded();
   await expect(last).toBeVisible();
+
+  // Swiped to the very end, the bottom row keeps breathing room above the
+  // pane's bottom edge (the sheet's 32px + the list's 8px end padding), so it
+  // never looks truncated.
+  const gap = await dialog.evaluate((el) => {
+    el.scrollTop = el.scrollHeight;
+    const buttons = el.querySelectorAll('ul button');
+    const lastButton = buttons[buttons.length - 1];
+    if (lastButton === undefined) return -1;
+    return el.getBoundingClientRect().bottom - lastButton.getBoundingClientRect().bottom;
+  });
+  expect(gap).toBeGreaterThanOrEqual(36);
 });
 
 test('category pill row stays inside the add sheet', async ({ page, request }) => {

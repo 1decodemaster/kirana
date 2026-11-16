@@ -18,7 +18,7 @@ interface MenuSheetProps {
 export function MenuSheet({ open, onClose, title, actions }: MenuSheetProps): React.JSX.Element {
   return (
     <Sheet open={open} onClose={onClose} title={title}>
-      <ul className="flex flex-col gap-1">
+      <ul className="flex flex-col gap-1 pb-2">
         {actions.map((action) => (
           <li key={action.label}>
             <button
