@@ -194,6 +194,7 @@ export function Data(): React.JSX.Element {
                 ref={fileInputRef}
                 type="file"
                 accept=".csv,.json,text/csv,application/json"
+                aria-label="Choose a CSV or export file to import"
                 className="sr-only"
                 onChange={(event) => onFileChosen(event.target.files?.[0])}
               />

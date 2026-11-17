@@ -53,6 +53,14 @@ applyThemePreference(loadThemePreference(window.localStorage), document.document
 // §4.7: replay queued mutations on boot and on reconnect.
 startOfflineQueue();
 
+// G4.4 installability: the offline-shell service worker (production only —
+// the dev server has no dist to cache).
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    void navigator.serviceWorker.register('/sw.js');
+  });
+}
+
 const rootEl = document.getElementById('root');
 if (rootEl === null) {
   throw new Error('#root element missing from index.html');

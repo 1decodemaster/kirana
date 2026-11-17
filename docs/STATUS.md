@@ -23,6 +23,12 @@ docs/progress/PHASE-4.md; merge order contracts → backend → web → e2e.
   (§4.7 IndexedDB, clientId replay, last-write-wins drops) + §8.7 offline
   banner with queue count. Smoke: G4.1 shape 333ms propagation; G4.2
   shape 3 offline checks persist after reconnect.
+- T-P4-06: PWA — manifest (4 icons incl. maskable), hand-rolled sw.js
+  (precache shell + hashed assets, network-first navigations, /api never
+  intercepted), PROD-only registration. A11y — @axe-core/playwright in
+  e2e; scan fixed 3 findings (§8.2 palette was misused as text color,
+  --color-bought contrast, unlabeled file input); zero critical/serious
+  on all screens incl. the G4.5 gates. G4.4 shape verified (offline shell).
 
 ## In progress
 - none.
@@ -38,8 +44,9 @@ docs/progress/PHASE-4.md; merge order contracts → backend → web → e2e.
   integration `pnpm verify` is green (374 tests).
 
 ## Next
-- T-P4-06 (web): service worker, manifest + icons, installability (G4.4),
-  axe findings fixed (G4.5). Then T-P4-07 e2e close (G4.1–G4.7).
+- T-P4-07 (lane D): committed e2e — first-run, auth, live-sync (G4.1),
+  offline-queue (G4.2/G4.3), a11y (G4.5) + session-restart (G4.6) specs;
+  phase close + tag phase-4-complete.
 
 ## Contract state
 shared/contracts.ts @ v1.4 (ADR-0005). openapi.json current.

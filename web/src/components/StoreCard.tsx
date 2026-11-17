@@ -100,8 +100,8 @@ export function StoreCard({
               <div key={group.category?.id ?? `none-${gi}`}>
                 {group.category !== undefined && (
                   <h3
-                    className="mt-2 flex items-center gap-2 px-3 py-1 text-tab font-semibold uppercase tracking-wide text-muted"
-                    style={group.category.color !== null ? { color: group.category.color } : undefined}
+                    className="mt-2 flex items-center gap-2 border-l-4 px-3 py-1 text-tab font-semibold uppercase tracking-wide text-muted"
+                    style={{ borderColor: group.category.color ?? 'transparent' }}
                   >
                     <span aria-hidden="true">{group.category.icon ?? ''}</span>
                     {group.category.name}

@@ -9,10 +9,11 @@
     "lint": "eslint ."
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@kirana/db": "workspace:*",
+    "@kirana/shared": "workspace:*",
     "@playwright/test": "^1.65.1",
     "@types/node": "^22.10.0",
-    "typescript": "^5.9.0",
-    "@kirana/shared": "workspace:*"
+    "typescript": "^5.9.0"
   }
 }
