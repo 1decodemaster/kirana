@@ -1,9 +1,10 @@
 import { fileURLToPath } from 'node:url';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { newUuidV7, normalizeName } from '@kirana/shared';
+import { DEMO_PASSCODE, hashPasscode } from '@kirana/db';
 import { buildApp } from '../app.js';
 import type { AppConfig } from '../config.js';
-import { resolveActor, type ActorContext } from '../services/actor.js';
+import type { ActorContext } from '../services/actor.js';
 
 export const MIGRATIONS_DIR = fileURLToPath(new URL('../../db/migrations', import.meta.url));
 
@@ -24,10 +25,60 @@ export function makeConfig(overrides: Partial<AppConfig> = {}): AppConfig {
   };
 }
 
-export async function buildTestApp(overrides: Partial<AppConfig> = {}): Promise<FastifyInstance> {
+export async function buildTestApp(
+  overrides: Partial<AppConfig> = {},
+  options: { seedHousehold?: boolean } = {},
+): Promise<FastifyInstance> {
   const app = await buildApp(makeConfig(overrides));
   await app.ready();
+  if (options.seedHousehold !== false) {
+    await ensureDemoHousehold(app);
+  }
   return app;
+}
+
+const DEMO_MEMBERS: ReadonlyArray<{ readonly displayName: string; readonly color: string }> = [
+  { displayName: 'Alex', color: '#4F46E5' },
+  { displayName: 'Sam', color: '#059669' },
+];
+
+/** A household + members with the known DEMO_PASSCODE, so injectJson can
+ * log in. Mirrors db/demo.ts; tests that exercise POST /household pass
+ * seedHousehold: false. */
+export async function ensureDemoHousehold(
+  app: FastifyInstance,
+  now = 1_730_000_000_000,
+): Promise<ActorContext> {
+  const db = app.db;
+  const existing = db.prepare('SELECT id FROM households ORDER BY created_at, id LIMIT 1').get() as
+    | { id: string }
+    | undefined;
+  let householdId = existing?.id;
+  if (householdId === undefined) {
+    householdId = newUuidV7(now);
+    db.prepare(
+      'INSERT INTO households (id, name, passcode_hash, created_at) VALUES (?, ?, ?, ?)',
+    ).run(householdId, 'Home', await hashPasscode(DEMO_PASSCODE), now);
+  }
+  const insertMember = db.prepare(
+    'INSERT INTO members (id, household_id, display_name, color, created_at) VALUES (?, ?, ?, ?, ?)',
+  );
+  for (const [i, member] of DEMO_MEMBERS.entries()) {
+    const exists = db
+      .prepare(
+        'SELECT 1 FROM members WHERE household_id = ? AND display_name = ? AND deleted_at IS NULL',
+      )
+      .get(householdId, member.displayName);
+    if (exists === undefined) {
+      insertMember.run(newUuidV7(now + i + 1), householdId, member.displayName, member.color, now + i + 1);
+    }
+  }
+  const first = db
+    .prepare(
+      'SELECT id FROM members WHERE household_id = ? AND deleted_at IS NULL ORDER BY created_at, id LIMIT 1',
+    )
+    .get(householdId) as { id: string };
+  return { householdId, memberId: first.id };
 }
 
 export const MUTATION_HEADERS = { 'x-requested-with': 'kirana' } as const;
@@ -35,6 +86,37 @@ export const MUTATION_HEADERS = { 'x-requested-with': 'kirana' } as const;
 export interface InjectOptions {
   readonly payload?: unknown;
   readonly headers?: Record<string, string>;
+  /** Skip the automatic session cookie (for 401-path tests). */
+  readonly auth?: false;
+}
+
+const loginCookies = new WeakMap<FastifyInstance, Promise<string>>();
+
+/** Log in as the demo household's first member (Alex) and cache the sid
+ * cookie for the app instance — every injectJson call is session-authed
+ * unless auth: false. */
+export function loginCookie(app: FastifyInstance): Promise<string> {
+  let cookie = loginCookies.get(app);
+  if (cookie === undefined) {
+    cookie = (async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/login',
+        payload: { passcode: DEMO_PASSCODE, displayName: 'Alex' },
+        headers: MUTATION_HEADERS,
+      });
+      if (res.statusCode !== 200) {
+        throw new Error(`test login failed: ${res.statusCode} ${res.body}`);
+      }
+      const setCookie = res.cookies[0];
+      if (setCookie === undefined || setCookie.value === '') {
+        throw new Error('test login returned no sid cookie');
+      }
+      return `sid=${setCookie.value}`;
+    })();
+    loginCookies.set(app, cookie);
+  }
+  return cookie;
 }
 
 export async function injectJson(
@@ -43,12 +125,14 @@ export async function injectJson(
   url: string,
   options: InjectOptions = {},
 ): Promise<LightMyRequestResponse> {
+  const cookie = options.auth === false ? undefined : await loginCookie(app);
   return app.inject({
     method,
     url,
     ...(options.payload === undefined ? {} : { payload: options.payload as never }),
     headers: {
       ...(method === 'GET' ? {} : MUTATION_HEADERS),
+      ...(cookie === undefined ? {} : { cookie }),
       ...options.headers,
     },
   });
@@ -66,8 +150,19 @@ export class FakeClock {
   }
 }
 
-export function actor(app: FastifyInstance, clock: FakeClock): ActorContext {
-  return resolveActor(app.db, clock.now());
+/** Household + oldest active member of the test DB, for seeding fixtures. */
+export function actor(app: FastifyInstance): ActorContext {
+  const household = app.db
+    .prepare('SELECT id FROM households ORDER BY created_at, id LIMIT 1')
+    .get() as { id: string } | undefined;
+  if (household === undefined) throw new Error('no household in test db');
+  const member = app.db
+    .prepare(
+      'SELECT id FROM members WHERE household_id = ? AND deleted_at IS NULL ORDER BY created_at, id LIMIT 1',
+    )
+    .get(household.id) as { id: string } | undefined;
+  if (member === undefined) throw new Error('no member in test db');
+  return { householdId: household.id, memberId: member.id };
 }
 
 export function seedStore(

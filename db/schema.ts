@@ -180,6 +180,23 @@ export const changeLog = sqliteTable(
   (t) => [index('idx_change_created').on(t.createdAt)],
 );
 
+export const sessions = sqliteTable(
+  'sessions',
+  {
+    id: text('id').primaryKey(),
+    householdId: text('household_id')
+      .notNull()
+      .references(() => households.id),
+    memberId: text('member_id')
+      .notNull()
+      .references(() => members.id),
+    createdAt: integer('created_at').notNull(),
+    expiresAt: integer('expires_at').notNull(),
+    revokedAt: integer('revoked_at'),
+  },
+  (t) => [index('idx_sessions_member').on(t.memberId), index('idx_sessions_expires').on(t.expiresAt)],
+);
+
 export const jobs = sqliteTable(
   'jobs',
   {

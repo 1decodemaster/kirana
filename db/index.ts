@@ -1,4 +1,5 @@
 export { PRAGMAS, openDatabase, defaultDatabaseUrl } from './connection.js';
+export { hashPasscode, verifyPasscode, sha256Hex } from './passcode.js';
 export {
   loadMigrations,
   migrate,
@@ -19,5 +20,5 @@ export {
   type SeedCatalogResult,
   type SeedItem,
 } from './seed.js';
-export { seedDemoBoard, type DemoSeedResult } from './demo.js';
+export { seedDemoBoard, DEMO_PASSCODE, type DemoSeedResult } from './demo.js';
 export * from './schema.js';

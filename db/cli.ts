@@ -52,7 +52,7 @@ try {
       break;
     }
     case 'seed-demo': {
-      const result = seedDemoBoard(db, Date.now());
+      const result = await seedDemoBoard(db, Date.now());
       console.log(
         result.skipped
           ? 'demo data skipped (household already has stores)'

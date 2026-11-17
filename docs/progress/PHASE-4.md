@@ -73,4 +73,76 @@ needs migration 0003" is renumbered: it now claims **0004**.
 
 ## Session log
 
-(empty — first session writes below)
+## 2026-11-16 — lane A — T-P4-01 (contract v1.4)
+
+Built:      Contract v1.3 → v1.4 (ADR-0005): POST /auth/members (passcode-
+            gated roster for the login screen), POST /household (§8.9 wizard
+            commit; 403 when one exists; seedSampleData default true),
+            PATCH /household (settings rename + passcode change), members
+            CRUD (soft delete; 403 on last-member delete). openapi.json
+            regenerated; tags household + members added. All additions;
+            nothing existing changed.
+Tests:      `pnpm verify` green: 96 shared (+5 contract tests) + 32 db +
+            37 web + 167 server. `pnpm contracts:check` green.
+Decisions:  (1) ADR-0005 — the §7.2 table predates P4's needs; the roster
+            endpoint is required or a second member could never log in.
+            (2) Member duplicate-name → 400 VALIDATION_FAILED (closed error
+            set kept). (3) Passcode change needs no current-passcode
+            re-confirm (session is the proof; casual-access model).
+Deviations: None. Additive contract change, ADR'd.
+Learned:    Zod omits absent optionals from parsed output — assert on the
+            field only when explicitly provided.
+Next:       T-P4-02 — sessions table (migration 0003) + scrypt auth.
+
+## 2026-11-16 — lane A — T-P4-02 (sessions + auth)
+
+Built:      Migration 0003_sessions.sql (ADR-0006): sessions table keyed by
+            sha256(token); the sid cookie carries
+            `<base64url token>.<base64url HMAC(token, SESSION_SECRET)>`.
+            db/passcode.ts (§12.2 scrypt, timingSafeEqual) exported from
+            @kirana/db — shared by the demo seed and the server (both lanes
+            A; kept out of shared/ to avoid a second contract PR). Server:
+            plugins/auth.ts (session resolution with a 1000-entry cache,
+            default-deny 401 outside {POST /auth/login, POST /auth/members,
+            POST /household}, per-session 120/min mutation limiter),
+            services/sessions.ts, services/rateLimit.ts (sliding window,
+            injectable clock), routes/auth.ts (login/logout/me/roster,
+            household create+patch, members CRUD — all append change_log
+            member rows; member delete revokes that member's sessions).
+            requireActor() at every handler boundary. helpers.ts: test apps
+            auto-seed a demo household (DEMO_PASSCODE='0000', members
+            Alex+Sam) and injectJson auto-logs-in as Alex — existing tests
+            unchanged. db/demo.ts now seeds the usable demo passcode.
+Tests:      `pnpm verify` green: 96 shared + 38 db (+6 passcode) + 37 web +
+            203 server (+36: passcode 6, rateLimit 9, sessions 7, auth
+            integration 14). Schema hash repinned to 0003; migrate tests
+            updated.
+Decisions:  (1) ADR-0006 (sessions table) as above. (2) Rate limiter is
+            record-then-check with a strict-> boundary: exactly 5 logins
+            pass per 5min/IP; the 6th records the breach; each attempt
+            past the limit after a block expires doubles the block (capped
+            1h) — an earlier check-first/5-min-failure-window design made
+            the backoff provably dead code. (3) Login counts every attempt
+            (§11 "5 attempts/5min/IP"), not just failures. (4) board.test
+            "bootstraps a default household" replaced by "fresh db is 401":
+            the lazy-bootstrap behaviour was the pre-auth stub, removed by
+            design in §7.6 — households come from the wizard. (5) Member
+            delete calls sessions.revokeAllForMember because the cache path
+            cannot re-check deleted_at without defeating the cache.
+            (6) Demo passcode '0000' (min length 4) so dev/e2e can log in.
+Deviations: None to the PRD. Cross-lane touches: db/cli.ts + e2e
+            global-setup/support (seedDemoBoard is now async) — mechanical
+            await fixes, no behaviour change; e2e suites stay red against
+            auth until T-P4-07 (expected mid-branch; verify does not run
+            e2e).
+Learned:    (a) Node's scrypt needs no maxmem override at N=16384/r=8 —
+            128·N·r = 16MB fits the 32MB default; a hand-rolled maxmem of
+            exactly 16MB trips "memory limit exceeded". (b) light-my-request
+            res.cookies strips flags — assert cookie flags on
+            res.headers['set-cookie']. (c) Fastify onRequest hooks run in
+            registration order: the CSRF hook (403) precedes auth (401) on
+            header-less mutations. (d) The e2e harness env already carried
+            SESSION_SECRET — the P0 author anticipated P4.
+Next:       T-P4-03 — household create already landed with this card
+            (routes/auth.ts); next is GET /events SSE + change_log audit +
+            /board delta verification.

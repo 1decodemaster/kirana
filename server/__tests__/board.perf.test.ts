@@ -24,7 +24,7 @@ let app: FastifyInstance;
 beforeAll(async () => {
   app = await buildTestApp();
   const clock = new FakeClock();
-  const householdId = actor(app, clock).householdId;
+  const householdId = actor(app).householdId;
   seedCategories(app.db, clock.now());
   const categories = [
     seededCategoryId(app, 'Produce'),

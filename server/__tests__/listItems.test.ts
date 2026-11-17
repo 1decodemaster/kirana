@@ -24,7 +24,7 @@ let householdId: string;
 beforeEach(async () => {
   app = await buildTestApp();
   clock = new FakeClock();
-  householdId = actor(app, clock).householdId;
+  householdId = actor(app).householdId;
 });
 
 afterAll(async () => {

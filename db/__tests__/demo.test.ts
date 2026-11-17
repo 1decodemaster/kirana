@@ -21,8 +21,8 @@ afterAll(() => {
 });
 
 describe('seedDemoBoard', () => {
-  it('creates a household, members, three stores, and list items on a fresh DB', () => {
-    const result = seedDemoBoard(db, 1_730_000_000_000);
+  it('creates a household, members, three stores, and list items on a fresh DB', async () => {
+    const result = await seedDemoBoard(db, 1_730_000_000_000);
     expect(result.skipped).toBe(false);
     expect(result.stores).toBe(3);
     expect(result.listItems).toBe(20);
@@ -39,15 +39,15 @@ describe('seedDemoBoard', () => {
     expect(stores.map((s) => s.name)).toEqual(['Costco', 'Indian Store', 'Target']);
   });
 
-  it('is idempotent: a second run is a no-op (G0.3-style)', () => {
-    seedDemoBoard(db, 1_730_000_000_000);
+  it('is idempotent: a second run is a no-op (G0.3-style)', async () => {
+    await seedDemoBoard(db, 1_730_000_000_000);
     const before = {
       households: (db.prepare('SELECT COUNT(*) AS n FROM households').get() as { n: number }).n,
       members: (db.prepare('SELECT COUNT(*) AS n FROM members').get() as { n: number }).n,
       stores: (db.prepare('SELECT COUNT(*) AS n FROM stores').get() as { n: number }).n,
       listItems: (db.prepare('SELECT COUNT(*) AS n FROM list_items').get() as { n: number }).n,
     };
-    const second = seedDemoBoard(db, 1_730_000_100_000);
+    const second = await seedDemoBoard(db, 1_730_000_100_000);
     expect(second.skipped).toBe(true);
     expect(second.stores).toBe(0);
     expect(second.listItems).toBe(0);
@@ -61,11 +61,11 @@ describe('seedDemoBoard', () => {
     expect(after).toEqual(before);
   });
 
-  it('never touches a household that already has stores', () => {
-    seedDemoBoard(db, 1_730_000_000_000);
+  it('never touches a household that already has stores', async () => {
+    await seedDemoBoard(db, 1_730_000_000_000);
     db.prepare("UPDATE stores SET deleted_at = 1730000200000 WHERE name = 'Target'").run();
     // One store remains → not empty → skip.
-    const result = seedDemoBoard(db, 1_730_000_300_000);
+    const result = await seedDemoBoard(db, 1_730_000_300_000);
     expect(result.skipped).toBe(true);
     const stores = db
       .prepare('SELECT COUNT(*) AS n FROM stores WHERE deleted_at IS NULL')
@@ -73,16 +73,16 @@ describe('seedDemoBoard', () => {
     expect(stores.n).toBe(2);
   });
 
-  it('seeds the categories and catalog it depends on', () => {
-    seedDemoBoard(db, 1_730_000_000_000);
+  it('seeds the categories and catalog it depends on', async () => {
+    await seedDemoBoard(db, 1_730_000_000_000);
     const categories = db.prepare('SELECT COUNT(*) AS n FROM categories').get() as { n: number };
     expect(categories.n).toBeGreaterThanOrEqual(26);
     const items = db.prepare('SELECT COUNT(*) AS n FROM items').get() as { n: number };
     expect(items.n).toBeGreaterThanOrEqual(40);
   });
 
-  it('works after a standalone seedCategories run (no duplicate category errors)', () => {
+  it('works after a standalone seedCategories run (no duplicate category errors)', async () => {
     expect(() => seedCategories(db, 1_730_000_000_000)).not.toThrow();
-    expect(() => seedDemoBoard(db, 1_730_000_100_000)).not.toThrow();
+    await expect(seedDemoBoard(db, 1_730_000_100_000)).resolves.toBeDefined();
   });
 });

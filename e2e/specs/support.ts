@@ -155,11 +155,11 @@ function wipeHouseholdDataIn(db: ReturnType<typeof openDatabase>): void {
  *  fresh sort orders, so the specs that follow must start from the seed.
  *  seedDemoBoard is idempotent: it only acts when the household has no
  *  stores, and every insert is INSERT OR IGNORE. */
-export function restoreDemoBoard(): void {
+export async function restoreDemoBoard(): Promise<void> {
   const db = openDatabase(DB_FILE);
   try {
     wipeHouseholdDataIn(db);
-    seedDemoBoard(db, Date.now());
+    await seedDemoBoard(db, Date.now());
   } finally {
     db.close();
   }

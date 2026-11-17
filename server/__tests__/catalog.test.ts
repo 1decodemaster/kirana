@@ -24,7 +24,7 @@ let storeId: string;
 beforeEach(async () => {
   app = await buildTestApp();
   clock = new FakeClock();
-  householdId = actor(app, clock).householdId;
+  householdId = actor(app).householdId;
   seedCategories(app.db, clock.now());
   storeId = seedStore(app, householdId, 'Indian Store', clock.now());
 });

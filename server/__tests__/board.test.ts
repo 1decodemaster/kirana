@@ -21,7 +21,7 @@ let householdId: string;
 beforeEach(async () => {
   app = await buildTestApp();
   clock = new FakeClock();
-  householdId = actor(app, clock).householdId;
+  householdId = actor(app).householdId;
 });
 
 afterAll(async () => {
@@ -29,16 +29,10 @@ afterAll(async () => {
 });
 
 describe('GET /board — shape and bootstrapping (§7.3)', () => {
-  it('bootstraps a default household + member on a fresh DB and returns a valid empty board', async () => {
-    const res = await injectJson(app, 'GET', '/api/v1/board');
-    expect(res.statusCode).toBe(200);
-    const board = boardResponseSchema.parse(res.json());
-    expect(board.household.name).toBe('Home');
-    expect(board.me.displayName).toBe('You');
-    expect(board.members).toHaveLength(1);
-    expect(board.stores).toEqual([]);
-    expect(board.catalog).toEqual([]);
-    expect(board.revision).toBe(0);
+  it('a fresh db with no session is 401 — households come from the wizard, not lazily (§7.6, P4)', async () => {
+    const res = await injectJson(app, 'GET', '/api/v1/board', { auth: false });
+    expect(res.statusCode).toBe(401);
+    expect(res.json()).toMatchObject({ error: { code: 'UNAUTHORIZED' } });
   });
 
   it('is deterministic under repeated GETs (no phantom revisions)', async () => {

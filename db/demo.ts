@@ -1,6 +1,10 @@
 import type Database from 'better-sqlite3';
 import { newUuidV7, normalizeName } from '@kirana/shared';
+import { hashPasscode } from './passcode.js';
 import { seedCategories, seedHouseholdCatalog } from './seed.js';
+
+/** Known passcode for dev/e2e households (§8.9 minimum length). */
+export const DEMO_PASSCODE = '0000';
 
 export interface DemoSeedResult {
   readonly stores: number;
@@ -73,7 +77,7 @@ const DEMO_STORES: readonly DemoStore[] = [
  * seeded if missing; demo stores are only created when the household has
  * none, so a user's own board is never touched.
  */
-export function seedDemoBoard(db: Database.Database, now: number): DemoSeedResult {
+export async function seedDemoBoard(db: Database.Database, now: number): Promise<DemoSeedResult> {
   const household = db
     .prepare('SELECT id FROM households ORDER BY created_at, id LIMIT 1')
     .get() as { id: string } | undefined;
@@ -81,10 +85,12 @@ export function seedDemoBoard(db: Database.Database, now: number): DemoSeedResul
   let householdId: string;
   if (household === undefined) {
     householdId = newUuidV7(now);
-    // Unusable passcode pre-auth (P4 replaces it): the secret is discarded.
+    // Usable demo passcode (ADR-0006): dev containers and the e2e harness
+    // log in with DEMO_PASSCODE.
+    const passcodeHash = await hashPasscode(DEMO_PASSCODE);
     db.prepare(
       'INSERT INTO households (id, name, passcode_hash, created_at) VALUES (?, ?, ?, ?)',
-    ).run(householdId, 'Home', newUuidV7(now), now);
+    ).run(householdId, 'Home', passcodeHash, now);
     db.prepare(
       'INSERT INTO members (id, household_id, display_name, color, created_at) VALUES (?, ?, ?, ?, ?)',
     ).run(newUuidV7(now), householdId, 'You', '#4F46E5', now);

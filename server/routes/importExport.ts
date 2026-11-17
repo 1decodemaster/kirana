@@ -10,6 +10,7 @@ import { previewImport } from '../services/importPreview.js';
 import { issuePreviewToken } from '../services/importToken.js';
 import { isJsonUpload, MAX_IMPORT_ROWS, parseCsvImport, parseJsonImport } from '../services/importParse.js';
 import { parseRequest } from '../validate.js';
+import { requireActor } from '../services/actor.js';
 
 const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
 
@@ -32,6 +33,7 @@ export async function importExportRoutes(app: FastifyInstance, opts: ImportExpor
   });
 
   app.post('/import/preview', async (req) => {
+    const actor = requireActor(req);
     const text = await readUpload(req);
     const parsed = isJsonUpload(req.headers['content-type'] ?? '', text)
       ? parseJsonImport(text)
@@ -39,28 +41,30 @@ export async function importExportRoutes(app: FastifyInstance, opts: ImportExpor
     if (parsed.length > MAX_IMPORT_ROWS) {
       throw httpError(400, 'IMPORT_PARSE_FAILED', `Import files are limited to ${MAX_IMPORT_ROWS} rows`);
     }
-    const { counts, rows, invalidLines } = previewImport(app.db, req.actor.householdId, parsed);
-    const token = issuePreviewToken(opts.sessionSecret, req.actor.householdId, { rows, invalidLines }, Date.now());
+    const { counts, rows, invalidLines } = previewImport(app.db, actor.householdId, parsed);
+    const token = issuePreviewToken(opts.sessionSecret, actor.householdId, { rows, invalidLines }, Date.now());
     return importPreviewResponseSchema.parse({ ...counts, rows, token });
   });
 
   app.post('/import/commit', async (req) => {
+    const actor = requireActor(req);
     const body = parseRequest(importCommitRequestSchema, req.body);
-    return commitImport(app.db, req.actor, opts.sessionSecret, body.token, body.decisions, Date.now());
+    return commitImport(app.db, actor, opts.sessionSecret, body.token, body.decisions, Date.now());
   });
 
   app.get('/export', async (req, reply) => {
+    const actor = requireActor(req);
     const query = parseRequest(exportQuerySchema, req.query);
     if (query.format === 'csv') {
       if (query.storeId === undefined) {
         throw httpError(400, 'VALIDATION_FAILED', 'storeId is required when format=csv');
       }
-      const { csv, filename } = exportStoreCsv(app.db, req.actor.householdId, query.storeId);
+      const { csv, filename } = exportStoreCsv(app.db, actor.householdId, query.storeId);
       reply.type('text/csv; charset=utf-8');
       reply.header('content-disposition', `attachment; filename="${filename}"`);
       return csv;
     }
-    return exportJson(app.db, req.actor.householdId, Date.now());
+    return exportJson(app.db, actor.householdId, Date.now());
   });
 
   app.post('/admin/backup', async () => {

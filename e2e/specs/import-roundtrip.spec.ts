@@ -58,12 +58,12 @@ test.beforeEach(() => {
   removeImportArtifacts();
 });
 
-test.afterEach(() => {
+test.afterEach(async () => {
   removeImportArtifacts();
   // The G3.3 drill wipes and rebuilds the board through the import model,
   // which cannot restore the full picture (see that test) — every test in
   // this file leaves the canonical demo board behind for the next spec.
-  restoreDemoBoard();
+  await restoreDemoBoard();
 });
 
 test('G3.2: 200-row CSV — preview counts, commit, re-import creates zero duplicates', async ({ page }) => {

@@ -96,7 +96,7 @@ describe('POST /admin/backup (§12.4)', () => {
     dir = await mkdtemp(path.join(tmpdir(), 'kirana-admin-backup-'));
     app = await buildTestApp({ dataDir: dir, databaseUrl: path.join(dir, 'kirana.db') });
     clock = new FakeClock();
-    actor(app, clock);
+    actor(app);
     seedCategories(app.db, clock.now());
   });
 

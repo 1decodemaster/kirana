@@ -20,7 +20,7 @@ let dalId: string;
 beforeEach(async () => {
   app = await buildTestApp();
   clock = new FakeClock();
-  householdId = actor(app, clock).householdId;
+  householdId = actor(app).householdId;
   seedCategories(app.db, clock.now());
   storeId = seedStore(app, householdId, 'Indian Store', clock.now());
   otherStoreId = seedStore(app, householdId, 'Costco', clock.now());
@@ -114,7 +114,7 @@ describe('JSON round-trip (§9.1: export accepted back verbatim)', () => {
 
     const target = await buildTestApp();
     try {
-      const targetActor = actor(target, clock);
+      const targetActor = actor(target);
       const parsed = parseJsonImport(JSON.stringify(source));
       const preview = previewImport(target.db, targetActor.householdId, parsed);
       expect(preview.counts).toEqual({ new: 4, duplicate: 0, conflict: 0, invalid: 0 });
@@ -154,7 +154,7 @@ describe('CSV round-trip (§9.4 → §9.1)', () => {
 
     const target = await buildTestApp();
     try {
-      const targetActor = actor(target, clock);
+      const targetActor = actor(target);
       const parsed = parseCsvImport(csv);
       const preview = previewImport(target.db, targetActor.householdId, parsed);
       expect(preview.counts.invalid).toBe(0);

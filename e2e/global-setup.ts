@@ -22,7 +22,7 @@ const DATA_TABLES = [
  *  (never unlink it — a reused dev server keeps the old inode open),
  *  migrate, seed the demo board, then reset every row to active so mutation
  *  specs always start from the same place. */
-export default function globalSetup(): void {
+export default async function globalSetup(): Promise<void> {
   mkdirSync(DB_DIR, { recursive: true });
   const db = openDatabase(DB_FILE);
   try {
@@ -32,7 +32,7 @@ export default function globalSetup(): void {
         db.prepare(`DELETE FROM ${table}`).run();
       }
     })();
-    seedDemoBoard(db, Date.now());
+    await seedDemoBoard(db, Date.now());
     db
       .prepare(
         "UPDATE list_items SET status = 'active', checked_at = NULL, checked_by = NULL WHERE status IN ('bought', 'cleared')",

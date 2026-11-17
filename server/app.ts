@@ -33,6 +33,7 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
     dataDir: config.dataDir,
     backupKeepDaily: config.backupKeepDaily,
     sessionSecret: config.sessionSecret,
+    appOrigin: config.appOrigin,
   });
 
   if (config.webDistDir !== undefined) {
