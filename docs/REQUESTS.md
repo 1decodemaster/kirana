@@ -38,3 +38,16 @@ household-owned, then seed), or an ADR if grocery-only is intended.
 Blocking: no (G3.3 gate is row counts + names and passes; noted as a
 known import limitation in the phase log)
 Status: open
+
+## R-015 — Platform: lane A added scripts/perf-nfr.ts (NFR harness)
+From: lane A (T-P5-01)
+Needed by: G5.1 (NFR-1/2/8/9/10/15 recorded numbers)
+Ask: acknowledgment that `scripts/perf-nfr.ts` (measurement-only, no app
+code; imports db/dist + shared/dist, spawns the built server) was added by
+lane A. scripts/** is lane C territory; the operator is the same human, so
+proceeding with this note instead of a blocking round-trip. Lane C owns it
+from here (e.g. wiring it into CI later, if wanted). Also: the command is
+documented in the phase log — no root package.json change was made (that
+file is contract territory).
+Blocking: no
+Status: accepted (same-operator note; lane C review at T-P5-05)
