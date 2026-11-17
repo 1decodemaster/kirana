@@ -3,7 +3,8 @@ import { fileURLToPath } from 'node:url';
 import { openDatabase, defaultDatabaseUrl } from './connection.js';
 import { computeSchemaHash, loadMigrations, migrate } from './migrate.js';
 import { seedCategories, seedHouseholdCatalog } from './seed.js';
-import { seedDemoBoard } from './demo.js';
+import { DEMO_PASSCODE, seedDemoBoard } from './demo.js';
+import { setHouseholdPasscode } from './passcode.js';
 
 function migrationsDir(): string {
   const override = process.env.KIRANA_MIGRATIONS_DIR;
@@ -17,7 +18,7 @@ function migrationsDir(): string {
 
 function usage(): never {
   console.error(
-    'usage: tsx cli.ts <migrate | seed-categories | seed-catalog --household <id> | seed-demo | reindex | hash-schema>',
+    'usage: tsx cli.ts <migrate | seed-categories | seed-catalog --household <id> | seed-demo | reindex | reset-passcode [--passcode <value>] | hash-schema>',
   );
   process.exit(2);
 }
@@ -58,6 +59,16 @@ try {
           ? 'demo data skipped (household already has stores)'
           : `demo data: ${result.stores} stores, ${result.listItems} list items`,
       );
+      break;
+    }
+    case 'reset-passcode': {
+      // Recovery for pre-P4 databases (ADR-0006): their passcode_hash is a
+      // discarded secret nothing can match. Replaces it; data is untouched.
+      const flagIndex = args.indexOf('--passcode');
+      const passcode = flagIndex >= 0 ? args[flagIndex + 1] : undefined;
+      if (flagIndex >= 0 && !passcode) usage();
+      const household = await setHouseholdPasscode(db, passcode ?? DEMO_PASSCODE);
+      console.log(`passcode replaced for household "${household.name}" (${household.id})`);
       break;
     }
     case 'hash-schema': {

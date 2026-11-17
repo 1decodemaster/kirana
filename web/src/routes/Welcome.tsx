@@ -53,16 +53,20 @@ export function Welcome(): React.JSX.Element {
   const [storeName, setStoreName] = useState('');
   const [storeIcon, setStoreIcon] = useState<string>(STORE_EMOJI_PRESETS[0] ?? '🏬');
   const [error, setError] = useState<string | null>(null);
+  /** A 403 from POST /household — the exit is sign-in, not retrying. */
+  const [householdExists, setHouseholdExists] = useState(false);
 
   const stepIndex = STEP_ORDER.indexOf(step);
 
   const goNext = (): void => {
     setError(null);
+    setHouseholdExists(false);
     setStep(STEP_ORDER[stepIndex + 1] ?? 'store');
   };
 
   const goBack = (): void => {
     setError(null);
+    setHouseholdExists(false);
     setStep(STEP_ORDER[stepIndex - 1] ?? 'household');
   };
 
@@ -93,7 +97,10 @@ export function Welcome(): React.JSX.Element {
             },
           );
         },
-        onError: (cause) => setError(wizardError(cause)),
+        onError: (cause) => {
+          setError(wizardError(cause));
+          setHouseholdExists(cause instanceof ApiError && cause.code === 'FORBIDDEN');
+        },
       },
     );
   };
@@ -117,9 +124,20 @@ export function Welcome(): React.JSX.Element {
         </h1>
 
         {error !== null && (
-          <p role="alert" className="mt-4 rounded-card border border-danger/40 bg-danger/10 px-3 py-2 text-item text-danger">
-            {error}
-          </p>
+          <div
+            role="alert"
+            className="mt-4 flex items-center gap-3 rounded-card border border-danger/40 bg-danger/10 px-3 py-2"
+          >
+            <p className="flex-1 text-item text-danger">{error}</p>
+            {householdExists && (
+              <Link
+                to="/login"
+                className="shrink-0 rounded-chip border border-danger/40 px-3 py-2 font-semibold text-danger hover:bg-danger/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                Already set up? Sign in
+              </Link>
+            )}
+          </div>
         )}
 
         {step === 'household' && (

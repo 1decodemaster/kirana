@@ -25,6 +25,27 @@ docker compose up --build   # → http://localhost:8080
 curl localhost:8080/healthz
 ```
 
+## First run & the household passcode
+
+On first open the app walks you through the setup wizard (household name,
+passcode, your name, optional starter data, first store). The passcode
+protects against casual access on a trusted LAN — it is not strong
+authentication (PRD §11). Anyone with host access can read the database
+directly.
+
+**Locked out, or upgrading a database from before P4 (auth)?** Databases
+created before passcode auth shipped hold a household whose stored passcode
+is a discarded secret — no passcode can ever match it, so login fails and
+the wizard refuses to create a second household. Reset it from the host
+(the command runs against the mounted `./data` volume; data is untouched):
+
+```sh
+DATABASE_URL="$PWD/data/kirana.db" node db/dist/cli.js reset-passcode --passcode YOURCODE
+```
+
+Then sign in with `YOURCODE` and pick your member. (`seed-demo` uses the
+passcode `0000` for dev/e2e databases.)
+
 ## Repo map
 
 - `shared/` — Zod contracts, domain utilities (contract territory)

@@ -1,5 +1,6 @@
 import { createHash, randomBytes, scrypt as scryptCb, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
+import type Database from 'better-sqlite3';
 
 const scrypt = promisify(scryptCb) as (
   password: string | Buffer,
@@ -46,4 +47,20 @@ export async function verifyPasscode(passcode: string, stored: string): Promise<
 /** Session tokens are stored only as a digest (ADR-0006). */
 export function sha256Hex(value: string): string {
   return createHash('sha256').update(value, 'utf8').digest('hex');
+}
+
+/** Replace the (single) household's passcode. Recovery path for databases
+ *  created before P4, whose passcode_hash is a discarded secret — no
+ *  passcode can ever match it (ADR-0006). Throws when no household exists;
+ *  the household's data is untouched. */
+export async function setHouseholdPasscode(db: Database.Database, passcode: string): Promise<{ id: string; name: string }> {
+  const household = db
+    .prepare('SELECT id, name FROM households ORDER BY created_at, id LIMIT 1')
+    .get() as { id: string; name: string } | undefined;
+  if (household === undefined) {
+    throw new Error('no household exists — create one with the first-run wizard instead');
+  }
+  const passcodeHash = await hashPasscode(passcode);
+  db.prepare('UPDATE households SET passcode_hash = ? WHERE id = ?').run(passcodeHash, household.id);
+  return { id: household.id, name: household.name };
 }

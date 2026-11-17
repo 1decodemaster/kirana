@@ -69,4 +69,6 @@ test('a second household is refused with the deck copy', async ({ page, request 
   await page.getByRole('button', { name: 'Next' }).click();
   await page.getByRole('button', { name: 'Finish' }).click();
   await expect(page.getByText('A household already exists.')).toBeVisible();
+  // The refusal comes with an obvious exit (§8.10 deck string reused).
+  await expect(page.getByRole('link', { name: 'Already set up? Sign in' })).toBeVisible();
 });

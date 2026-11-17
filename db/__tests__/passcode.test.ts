@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { hashPasscode, verifyPasscode, sha256Hex } from '../passcode.js';
+import { hashPasscode, setHouseholdPasscode, sha256Hex, verifyPasscode } from '../passcode.js';
+import { openDatabase } from '../connection.js';
+import { loadMigrations, migrate } from '../migrate.js';
+import { fileURLToPath } from 'node:url';
+import { newUuidV7 } from '@kirana/shared';
+
+const MIGRATIONS_DIR = fileURLToPath(new URL('../migrations', import.meta.url));
 
 describe('passcode hashing (PRD §12.2)', () => {
   it('produces the scrypt$N$r$p$salt$hash format', async () => {
@@ -41,5 +47,40 @@ describe('passcode hashing (PRD §12.2)', () => {
     expect(sha256Hex('abc')).toBe(
       'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
     );
+  });
+});
+
+describe('setHouseholdPasscode (pre-P4 recovery, ADR-0006)', () => {
+  it('replaces the passcode so the household becomes loggable again', async () => {
+    const db = openDatabase(':memory:');
+    try {
+      migrate(db, loadMigrations(MIGRATIONS_DIR));
+      // A pre-P4 household: the "hash" is a discarded secret, never scrypt.
+      db.prepare(
+        'INSERT INTO households (id, name, passcode_hash, created_at) VALUES (?, ?, ?, ?)',
+      ).run(newUuidV7(1), 'Home', 'be2deb20a9670efe7d65e171c437733abf358f328d83aa463600798ef7275223', 1);
+      await expect(verifyPasscode('1234', 'be2deb20a9670efe7d65e171c437733abf358f328d83aa463600798ef7275223')).resolves.toBe(false);
+
+      const household = await setHouseholdPasscode(db, '1234');
+      expect(household.name).toBe('Home');
+
+      const row = db.prepare('SELECT passcode_hash FROM households').get() as {
+        passcode_hash: string;
+      };
+      await expect(verifyPasscode('1234', row.passcode_hash)).resolves.toBe(true);
+      await expect(verifyPasscode('4321', row.passcode_hash)).resolves.toBe(false);
+    } finally {
+      db.close();
+    }
+  });
+
+  it('refuses when no household exists (the wizard owns creation)', async () => {
+    const db = openDatabase(':memory:');
+    try {
+      migrate(db, loadMigrations(MIGRATIONS_DIR));
+      await expect(setHouseholdPasscode(db, '1234')).rejects.toThrow(/no household exists/);
+    } finally {
+      db.close();
+    }
   });
 });
