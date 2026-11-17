@@ -18,6 +18,11 @@ docs/progress/PHASE-4.md; merge order contracts → backend → web → e2e.
   theme with data-theme override, about, sign out); 401 → session-expired
   redirect; Home header shows the household name. Verified by throwaway
   Playwright smoke at 375×667 incl. keyboard-only login.
+- T-P4-05: web live sync (EventSource → board/items/categories
+  invalidation, Last-Event-ID reconnect) + offline mutation queue
+  (§4.7 IndexedDB, clientId replay, last-write-wins drops) + §8.7 offline
+  banner with queue count. Smoke: G4.1 shape 333ms propagation; G4.2
+  shape 3 offline checks persist after reconnect.
 
 ## In progress
 - none.
@@ -33,9 +38,8 @@ docs/progress/PHASE-4.md; merge order contracts → backend → web → e2e.
   integration `pnpm verify` is green (374 tests).
 
 ## Next
-- T-P4-05 (web): SSE client (§7.5 refetch rules), offline mutation queue
-  (§4.7, IndexedDB, clientId replay), offline banner (§8.7). Then
-  T-P4-06 PWA/a11y, T-P4-07 e2e close (G4.1–G4.7).
+- T-P4-06 (web): service worker, manifest + icons, installability (G4.4),
+  axe findings fixed (G4.5). Then T-P4-07 e2e close (G4.1–G4.7).
 
 ## Contract state
 shared/contracts.ts @ v1.4 (ADR-0005). openapi.json current.

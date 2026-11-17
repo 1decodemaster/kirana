@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router';
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { router } from './App';
+import { startOfflineQueue } from './api/client';
 import { shouldRedirectToLogin } from './lib/session';
 import { applyThemePreference, loadThemePreference } from './lib/theme';
 import './styles/tokens.css';
@@ -30,6 +31,15 @@ const queryClient = new QueryClient({
       staleTime: 30_000,
       retry: 1,
       refetchOnWindowFocus: true,
+      // §8.7 offline reading: refetches pause while offline and resume on
+      // reconnect — cached data keeps rendering.
+    },
+    mutations: {
+      // §4.7: mutations always attempt immediately; a network failure is
+      // queued by the api client and replayed on reconnect. ('online' would
+      // park the mutation in a paused state instead.)
+      networkMode: 'offlineFirst',
+      retry: false,
     },
   },
   queryCache: new QueryCache({ onError: onCacheError }),
@@ -39,6 +49,9 @@ registry.client = queryClient;
 
 // Restore the §8.2 theme override before first paint of the tree.
 applyThemePreference(loadThemePreference(window.localStorage), document.documentElement);
+
+// §4.7: replay queued mutations on boot and on reconnect.
+startOfflineQueue();
 
 const rootEl = document.getElementById('root');
 if (rootEl === null) {

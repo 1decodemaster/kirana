@@ -243,3 +243,50 @@ Learned:    (a) Playwright .tap() needs hasTouch — Desktop Chrome without
             always send it. (d) getByText matches section headings twice
             when a nav rail also has the label — prefer getByRole('heading').
 Next:       T-P4-05 — web SSE client + offline queue + offline banner.
+
+## 2026-11-16 — lane B — T-P4-05 (web: live sync, offline queue, banner)
+
+Built:      lib/useLiveSync.ts — EventSource('/api/v1/events') mounted in
+            NavShell; on §7.5 change events it invalidates the board query
+            (plus items/categories keys per entity); automatic reconnect
+            replays via Last-Event-ID. lib/offline.ts — §4.7 queue: non-GET
+            mutations outside /auth|/import|/admin that fail with a network
+            error or 5xx enqueue to IndexedDB (client-generated clientId),
+            api() resolves them as success so the optimistic UI stands;
+            drainQueue replays oldest-first on boot + the browser 'online'
+            event, dropping 400/404/409/410 as applied-or-obsolete (§4.7
+            last-write-wins) and keeping everything else; a count pub-sub
+            feeds the banner. components/OfflineBanner.tsx — §8.7 thin top
+            banner while offline with "{n} change(s) waiting to sync" when
+            >0, and "Updated elsewhere." for a few seconds after a drop
+            (window event). main.tsx: mutations default networkMode
+            'offlineFirst' (they must attempt immediately — 'online' parks
+            them paused), queries stay 'online' (refetches pause offline);
+            startOfflineQueue() on boot.
+Tests:      `pnpm verify` green: 96 shared + 38 db + 59 web (+11: offline
+            queueable/drain/publisher 7, replay-over-fetch 2, client scope
+            2) + 214 server. Throwaway Playwright smoke at 375×667 (not
+            committed): G4.1 shape — check on context A appears on context
+            B in 333ms (<1s, NFR-7); G4.2 shape — 3 checks offline →
+            banner + queue count → reconnect → drain → reload → all 3
+            persisted server-side.
+Decisions:  (1) Queued mutations resolve as success (undefined body): the
+            optimistic UI stands, sheets close, and TanStack pauses the
+            invalidated refetches offline ('online' networkMode) until
+            reconnect reconciles. (2) The queue surface excludes /auth,
+            /import (single-use token) and /admin — those surface errors.
+            (3) drainQueue removes an entry ONLY on 2xx or a drop-code —
+            the first draft removed-then-broke on 401 and would have lost
+            queued data (the test caught it). (4) New §8.10 rows: offline
+            queue count + "Updated elsewhere.".
+Deviations: None to the PRD. Contract v1.4 unchanged; no migration.
+Learned:    (a) TanStack v5 pauses MUTATIONS offline too (networkMode
+            'online') — offline writes never reach mutationFn without
+            'offlineFirst'. (b) Checking rows reorders the board (§6.8) and
+            fully-bought stores auto-collapse (§8.3): index-based locators
+            go stale mid-test — pin rows by aria-label and re-expand
+            sections before asserting. (c) A test that asserts optimistic
+            state must wait for content (store headings) after login —
+            skeletons have zero checkboxes.
+Next:       T-P4-06 — web: service worker, manifest + icons,
+            installability (G4.4), axe findings fixed (G4.5).

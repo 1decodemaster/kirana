@@ -1203,6 +1203,8 @@ Server returns `matchedVia: 'name' | 'alias' | 'fuzzy'` and `inStore: boolean` s
 | Settings about section | "About" / "Kirana {version} ({revision})" |
 | Settings sign out | "Sign out" |
 | Coach-mark first add | "Tap + to add your first item" |
+| Offline queue count | "{n} change(s) waiting to sync" |
+| Updated elsewhere | "Updated elsewhere." |
 
 * * *
 

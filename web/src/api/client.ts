@@ -1,4 +1,13 @@
 import type { ApiError as ApiErrorDto } from '@kirana/shared';
+import {
+  drainQueue,
+  enqueueMutation,
+  idbQueueStore,
+  isQueueable,
+  QUEUE_DROPPED_EVENT,
+  refreshQueueCount,
+  type QueueStore,
+} from '../lib/offline.js';
 
 const BASE = '/api/v1';
 
@@ -25,12 +34,36 @@ export class NetworkError extends Error {
   }
 }
 
+/** A queued mutation resolved as success: the optimistic UI stands and the
+ * queue replays it on reconnect (§4.7 QUEUED). Callers that need a response
+ * body must tolerate undefined when this is possible. */
+export class QueuedError extends Error {
+  constructor() {
+    super('Queued for replay when back online');
+    this.name = 'QueuedError';
+  }
+}
+
 interface RequestOptions {
   readonly method: 'GET' | 'POST' | 'PATCH' | 'DELETE' | 'PUT';
   readonly body?: unknown;
   readonly signal?: AbortSignal;
   /** Resolve path from the origin root instead of /api/v1 (healthz, §7.2 #32). */
   readonly absolute?: boolean;
+  /** Overridden in tests; the runtime store is IndexedDB. */
+  readonly queueStore?: QueueStore;
+}
+
+let defaultQueueStore: QueueStore = idbQueueStore;
+
+export function setDefaultQueueStore(store: QueueStore): void {
+  defaultQueueStore = store;
+}
+
+function newClientId(): string {
+  return typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `q-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
 export async function api<T>(path: string, options: RequestOptions): Promise<T> {
@@ -48,9 +81,75 @@ export async function api<T>(path: string, options: RequestOptions): Promise<T> 
       signal: options.signal,
     });
   } catch (cause: unknown) {
-    throw new NetworkError(cause);
+    if (options.signal?.aborted === true) throw new NetworkError(cause);
+    return queueOrThrow<T>(path, options, cause);
+  }
+  if (response.status >= 500 && isQueueable(options.method, `${BASE}${path}`)) {
+    return queueOrThrow<T>(path, options, new Error(`server error ${response.status}`));
   }
   return parseResponse<T>(response);
+}
+
+/** §4.7: 5xx / offline → QUEUED. The optimistic UI stands; drainQueue
+ * replays oldest-first on reconnect. */
+async function queueOrThrow<T>(
+  path: string,
+  options: RequestOptions,
+  cause: unknown,
+): Promise<T> {
+  if (isQueueable(options.method, `${BASE}${path}`)) {
+    // isQueueable guarantees a mutating verb; QueueEntry narrows the union.
+    const method: 'POST' | 'PATCH' | 'DELETE' | 'PUT' =
+      options.method === 'GET' ? 'PATCH' : options.method;
+    await enqueueMutation(options.queueStore ?? defaultQueueStore, {
+      clientId: newClientId(),
+      method,
+      path: `${BASE}${path}`,
+      ...(options.body === undefined ? {} : { body: options.body }),
+      createdAt: Date.now(),
+    });
+    return undefined as T;
+  }
+  throw new NetworkError(cause);
+}
+
+function isOnline(): boolean {
+  return typeof navigator === 'undefined' ? true : navigator.onLine;
+}
+
+/** Replay queued mutations oldest-first (G4.2/G4.3). Called on boot and on
+ * the browser 'online' event. A 401 stops the drain — the entries survive
+ * for the next session; the resumed board query redirects to login. */
+export async function drainMutationQueue(): Promise<void> {
+  const store = defaultQueueStore;
+  await refreshQueueCount(store);
+  if (!isOnline()) return;
+  const result = await drainQueue(store, async (entry) => {
+    try {
+      const response = await fetch(entry.path, {
+        method: entry.method,
+        headers: {
+          'x-requested-with': 'kirana',
+          ...(entry.body === undefined ? {} : { 'content-type': 'application/json; charset=utf-8' }),
+        },
+        ...(entry.body === undefined ? {} : { body: JSON.stringify(entry.body) }),
+      });
+      return { ok: response.ok, status: response.status, networkFailure: false };
+    } catch {
+      return { ok: false, status: 0, networkFailure: true };
+    }
+  });
+  await refreshQueueCount(store);
+  if (result.dropped > 0 && typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(QUEUE_DROPPED_EVENT));
+  }
+}
+
+/** Wire boot + reconnect draining (main.tsx calls this once). */
+export function startOfflineQueue(): void {
+  if (typeof window === 'undefined') return;
+  void drainMutationQueue();
+  window.addEventListener('online', () => void drainMutationQueue());
 }
 
 /** multipart upload (§7.2 #28): the browser sets the boundary header. */

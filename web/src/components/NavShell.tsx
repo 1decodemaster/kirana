@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router';
+import { OfflineBanner } from './OfflineBanner';
+import { useLiveSync } from '../lib/useLiveSync';
 
 interface Destination {
   readonly to: string;
@@ -49,6 +51,9 @@ export function NavShell(): React.JSX.Element {
   const wasOpenRef = useRef(false);
   const location = useLocation();
 
+  // §7.5: SSE-driven invalidation while the authed shell is mounted.
+  useLiveSync();
+
   useEffect(() => {
     setMoreOpen(false);
   }, [location.pathname]);
@@ -94,6 +99,7 @@ export function NavShell(): React.JSX.Element {
       </nav>
 
       <main id="main" className="pb-20 lg:pb-8 lg:pl-56">
+        <OfflineBanner />
         <Outlet />
       </main>
 
