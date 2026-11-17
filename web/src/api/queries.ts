@@ -92,10 +92,12 @@ export function useAddListItem() {
           BOARD_KEY,
           applyListItemAdd(previous, storeId, {
             clientId: body.clientId,
+            itemId: body.itemId,
             name: displayName ?? body.name ?? '',
             qtyValue: body.qtyValue ?? null,
             unitCode: body.unitCode ?? null,
             categoryId: body.categoryId ?? null,
+            note: body.note,
           }),
         );
       }

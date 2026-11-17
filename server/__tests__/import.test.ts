@@ -255,6 +255,34 @@ describe('POST /import/commit (§9.3)', () => {
     return res.json() as PreviewBody;
   }
 
+  it('an import row lands on the store\u2019s existing active row for the item (ADR-0007)', async () => {
+    // A live board: Basmati Rice already active in Indian Store with 2 kg.
+    const itemId = seedCatalogItem(app, householdId, 'Basmati Rice', clock.now(), {
+      unit: 'kg',
+    });
+    app.db
+      .prepare(
+        `INSERT INTO list_items (id, store_id, item_id, qty_value, unit_code, status, sort_order, created_at, updated_at)
+         VALUES (?, ?, ?, 2, 'kg', 'active', 0, ?, ?)`,
+      )
+      .run(newUuidV7(clock.now()), storeId, itemId, clock.now(), clock.now());
+
+    const p = await preview('store,name,qty,unit\nIndian Store,Basmati Rice,3,kg');
+    const res = await commit(p.token, [{ line: 2, action: 'merge', targetItemId: itemId }]);
+    expect(res.statusCode, res.body).toBe(200);
+    // The row merged rather than created: 'created' counts catalog items
+    // (0 — the item existed), 'merged' counts rows attached.
+    expect(importCommitResponseSchema.parse(res.json())).toEqual({ created: 0, merged: 1, skipped: 0 });
+
+    const rows = app.db
+      .prepare(
+        "SELECT qty_value FROM list_items WHERE store_id = ? AND item_id = ? AND status = 'active'",
+      )
+      .all(storeId, itemId) as Array<{ qty_value: number | null }>;
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.qty_value).toBe(5);
+  });
+
   it('creates items, aliases, stores and categories in one commit', async () => {
     const p = await preview(
       'store,category,name,aliases,qty,unit,note\nNew Store,New Category,Chana Dal,chana|चना दाल,2,kg,soaked overnight',

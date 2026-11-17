@@ -19,12 +19,14 @@ import {
   type SearchCandidate,
   type SearchSignals,
   type SearchResultDto,
+  mergeAddIntoRow,
 } from '@kirana/shared';
 import { httpError } from '../plugins/errors.js';
 import type { ActorContext } from './actor.js';
 import { appendChange } from './changeLog.js';
 import { categoryExists, otherCategoryId } from './categories.js';
-import { toCatalogItemDto, toItemDto } from './mappers.js';
+import { toCatalogItemDto, toItemDto, toListItemDto } from './mappers.js';
+import { fetchRow } from './listItems.js';
 
 interface ItemCoreRow {
   readonly id: string;
@@ -410,7 +412,7 @@ export function addListItem(
   storeId: string,
   input: AddListItemRequest,
   now: number,
-): { body: AddListItemResponse; replayed: boolean } {
+): { body: AddListItemResponse; replayed: boolean; merged: boolean } {
   getActiveStore(db, actor.householdId, storeId);
 
   // §7.4 idempotency: replaying a clientId returns the original row.
@@ -441,6 +443,7 @@ export function addListItem(
     if (itemRow === undefined) throw httpError(500, 'INTERNAL', 'Replayed list row has no item');
     return {
       replayed: true,
+      merged: false,
       body: {
         listItem: {
           id: replay.id,
@@ -601,7 +604,7 @@ function finishAdd(
   now: number,
   createdItem: boolean,
   createdAlias: boolean,
-): { body: AddListItemResponse; replayed: boolean } {
+): { body: AddListItemResponse; replayed: boolean; merged: boolean } {
   if (input.categoryId !== undefined && !categoryExists(db, input.categoryId)) {
     throw httpError(400, 'VALIDATION_FAILED', 'Unknown categoryId');
   }
@@ -655,6 +658,62 @@ function finishAdd(
   const maxOrder = (db
     .prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM list_items WHERE store_id = ?')
     .get(storeId) as { m: number }).m;
+
+  // ADR-0007: one active row per (store, item). An add that lands on an
+  // existing active row accumulates into it instead of creating a second
+  // row; bought/cleared rows never merge (re-adding after buying is a new
+  // need).
+  const existing = db
+    .prepare(
+      `SELECT id, qty_value, unit_code, category_id, note FROM list_items
+       WHERE store_id = ? AND item_id = ? AND status = 'active'
+       ORDER BY sort_order, created_at, id LIMIT 1`,
+    )
+    .get(storeId, itemRow.id) as
+    | { id: string; qty_value: number | null; unit_code: string | null; category_id: string | null; note: string | null }
+    | undefined;
+
+  const itemRowAfter = fetchItemCore(db, itemRow.id) as ItemCoreRow;
+
+  if (existing !== undefined) {
+    const merged = mergeAddIntoRow(
+      {
+        qtyValue: existing.qty_value,
+        unitCode: existing.unit_code,
+        categoryId: existing.category_id,
+        note: existing.note,
+      },
+      input,
+    );
+    db.prepare(
+      `UPDATE list_items SET qty_value = ?, unit_code = ?, category_id = ?, note = ?, updated_at = ?
+       WHERE id = ?`,
+    ).run(merged.qtyValue, merged.unitCode, merged.categoryId, merged.note, now, existing.id);
+    db.prepare(
+      `INSERT INTO item_store_stats (item_id, store_id, times_added, last_added_at, default_category_id)
+       VALUES (?, ?, 1, ?, ?)
+       ON CONFLICT(item_id, store_id) DO UPDATE SET
+         times_added = times_added + 1,
+         last_added_at = excluded.last_added_at,
+         default_category_id = excluded.default_category_id`,
+    ).run(itemRow.id, storeId, now, categoryId);
+    appendChange(
+      db,
+      { entity: 'list_item', entityId: existing.id, op: 'update', storeId, actorId: actor.memberId },
+      now,
+    );
+    return {
+      replayed: false,
+      merged: true,
+      body: {
+        listItem: toListItemDto(fetchRow(db, actor.householdId, existing.id)),
+        item: toCatalogItemDto(itemRowAfter, aliasDisplayNames(db, itemRow.id)),
+        createdItem,
+        createdAlias,
+      },
+    };
+  }
+
   db.prepare(
     `INSERT INTO list_items (id, client_id, store_id, item_id, qty_value, unit_code,
             category_id, note, status, added_by, sort_order, created_at, updated_at)
@@ -690,9 +749,9 @@ function finishAdd(
     now,
   );
 
-  const itemRowAfter = fetchItemCore(db, itemRow.id) as ItemCoreRow;
   return {
     replayed: false,
+    merged: false,
     body: {
       listItem: {
         id: listId,

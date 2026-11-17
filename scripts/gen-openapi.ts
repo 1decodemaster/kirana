@@ -172,7 +172,8 @@ const ENDPOINTS: readonly EndpointSpec[] = [
     method: 'post',
     path: '/api/v1/stores/{id}/items',
     operationId: 'addListItem',
-    summary: 'Add a list item by catalog id or free text (§7.4)',
+    summary:
+      'Add a list item by catalog id or free text (§7.4); 200 when the add folds into the store\'s existing active row for the item (ADR-0007), 201 when a row is created',
     tag: 'list',
     body: c.addListItemRequestSchema,
     response: c.addListItemResponseSchema,

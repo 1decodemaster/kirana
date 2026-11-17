@@ -6,6 +6,7 @@ import type {
   UnitCode,
   UpdateStoreRequest,
 } from '@kirana/shared';
+import { mergeAddIntoRow } from '@kirana/shared';
 
 /** Recompute §6.6 counts from a store's items (active+bought only). */
 export function recount(store: StoreDto): StoreDto {
@@ -112,27 +113,56 @@ export function applyListItemAdd(
   storeId: string,
   optimistic: {
     clientId: string;
+    itemId?: string;
     name: string;
     qtyValue: number | null;
     unitCode: UnitCode | null;
     categoryId: string | null;
+    note?: string | null;
   },
 ): BoardResponse {
-  const placeholder: ListItemDto = {
-    id: `pending:${optimistic.clientId}`,
-    itemId: 'pending',
-    name: optimistic.name,
-    qtyValue: optimistic.qtyValue,
-    unitCode: optimistic.unitCode,
-    categoryId: optimistic.categoryId,
-    status: 'active',
-    note: null,
-    addedBy: null,
-    updatedAt: 0,
-  };
-  return mapStore(board, storeId, (store) =>
-    recount({ ...store, items: [...store.items, placeholder] }),
-  );
+  return mapStore(board, storeId, (store) => {
+    // ADR-0007: the server folds the add into the store's existing active
+    // row for the item — mirror that optimistically so the view never
+    // flashes a second row. Match by itemId when the sheet adds a picked
+    // suggestion; by name otherwise (free-text adds that resolve to an
+    // existing item).
+    const index = store.items.findIndex(
+      (item) =>
+        item.status === 'active' &&
+        (optimistic.itemId !== undefined
+          ? item.itemId === optimistic.itemId
+          : item.name.toLowerCase() === optimistic.name.trim().toLowerCase()),
+    );
+    if (index >= 0) {
+      const existing = store.items[index];
+      if (existing !== undefined) {
+        const merged = mergeAddIntoRow(existing, {
+          clientId: optimistic.clientId,
+          qtyValue: optimistic.qtyValue ?? undefined,
+          unitCode: optimistic.unitCode ?? undefined,
+          categoryId: optimistic.categoryId ?? undefined,
+          note: optimistic.note,
+        });
+        const items = [...store.items];
+        items[index] = merged;
+        return recount({ ...store, items });
+      }
+    }
+    const placeholder: ListItemDto = {
+      id: `pending:${optimistic.clientId}`,
+      itemId: 'pending',
+      name: optimistic.name,
+      qtyValue: optimistic.qtyValue,
+      unitCode: optimistic.unitCode,
+      categoryId: optimistic.categoryId,
+      status: 'active',
+      note: null,
+      addedBy: null,
+      updatedAt: 0,
+    };
+    return recount({ ...store, items: [...store.items, placeholder] });
+  });
 }
 
 export function applyStorePatch(

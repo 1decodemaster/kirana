@@ -12,7 +12,7 @@ interface ListRowWithHousehold extends ListItemRow {
   readonly checked_by: string | null;
 }
 
-function fetchRow(db: Database.Database, householdId: string, id: string): ListRowWithHousehold {
+export function fetchRow(db: Database.Database, householdId: string, id: string): ListRowWithHousehold {
   const row = db
     .prepare(
       `SELECT li.id, li.store_id, li.item_id, i.name AS item_name, li.qty_value,

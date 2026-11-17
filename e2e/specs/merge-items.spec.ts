@@ -89,11 +89,12 @@ test('G3.5: merge requires confirmation, moves rows and aliases, deletes the sou
   await expect(page.locator(`a[href="/catalog/${sourceId}"]`)).toHaveCount(0);
   await expect(page.getByRole('link', { name: TARGET })).toBeVisible();
 
-  // List rows moved: Target now serves two rows of the kept item and none
-  // of the source.
+  // List rows moved and consolidated (ADR-0007): the moved source row and
+  // the target's own row in the same store fold into exactly one Target row,
+  // and no Source row remains.
   await expect.poll(async () => {
     const fresh = await boardOf(request);
     const freshRows = fresh.stores.find((s) => s.name === STORE)?.items ?? [];
-    return freshRows.filter((i) => i.name === TARGET).length - freshRows.filter((i) => i.name === SOURCE).length;
-  }).toBe(2);
+    return `${freshRows.filter((i) => i.name === TARGET).length}/${freshRows.filter((i) => i.name === SOURCE).length}`;
+  }).toBe('1/0');
 });

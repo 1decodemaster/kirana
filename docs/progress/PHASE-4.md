@@ -439,3 +439,35 @@ Open items:  R-014 (import category scope, lane A); BACKLOG: alias
              the phase log (README/env docs belong to P5).
 Next:        P5 — Hardening & Release per §15.3. Start: create
              docs/progress/PHASE-5.md from the P5 card.
+
+## 2026-11-17 — post-close maintenance — ADR-0007 (user request)
+Built:      Item-level normalization within a store. Adds now fold into the
+            store's existing active row for the item instead of appending a
+            second row (PRD §6.4 G2.3 gap + user bug report). Pure merge
+            rule in shared/src/accumulate.ts (mergeAddIntoRow); finishAdd
+            merge branch (200 vs 201); import commit parity; mergeItems
+            consolidates via consolidateActiveRows; migration
+            0004_consolidate_list_rows.sql (data-only, backfills INV-6 on
+            pre-0004 databases); web applyListItemAdd mirrors the merge
+            optimistically (itemId match, else name match). Reset-passcode
+            follow-up (1bcf1e5) landed earlier today.
+Tests:      shared 104 + db 45 + web 63 + server 221 = 433 green
+            (`pnpm verify`); e2e suite re-run pending before commit.
+Decisions:  ADR-0007 — merge semantics matrix (qty-less add inherits row
+            unit and never invents a quantity; same-unit sums; explicit
+            different unit replaces only with a quantity; note/categoryId
+            replace only when provided); 201=created / 200=merged /
+            200=replayed (replay wins); consolidation survivor = lowest
+            (sort_order, created_at, id); bought/cleared rows never merge.
+            Decisions empty = "merge with the preview's targetItemId" stays
+            a 400 (the UI always sends decisions) — kept as-is, documented
+            by the import test.
+Deviations: none beyond ADR-0007 itself (user-requested behavior change;
+            openapi.json summary updated, no shape/version change).
+Learned:    "No duplicate rows" is a *service* invariant, not a schema one —
+            merge + import + item-merge + optimistic cache must all uphold
+            it; write the rule once in shared and reuse everywhere. The
+            reset-passcode CLI must run under the same Node major as the
+            compiled better-sqlite3 (v18 shell default segfaults; use the
+            nvm v22).
+Next:       Commit this work, re-run the e2e suite, then open P5 (§15.3).

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BoardResponse, CategoryDto, StoreDto } from '@kirana/shared';
-import { applyCategorySortOrder, applyStoreOrder, applyStorePatch } from './cache.js';
+import { applyCategorySortOrder, applyListItemAdd, applyStoreOrder, applyStorePatch } from './cache.js';
 
 const category = (id: string, sortOrder: number): CategoryDto => ({
   id,
@@ -68,5 +68,61 @@ describe('applyCategorySortOrder', () => {
     expect(next.categories.find((c) => c.id === 'c3')?.sortOrder).toBe(0);
     expect(next.categories.find((c) => c.id === 'c1')?.sortOrder).toBe(10);
     expect(next.categories.find((c) => c.id === 'c2')?.sortOrder).toBe(10);
+  });
+});
+
+describe('applyListItemAdd (ADR-0007 optimistic accumulation)', () => {
+  const listItem = (
+    id: string,
+    overrides: Partial<BoardResponse['stores'][number]['items'][number]> = {},
+  ): BoardResponse['stores'][number]['items'][number] => ({
+    id,
+    itemId: `item-${id}`,
+    name: `Item ${id}`,
+    qtyValue: null,
+    unitCode: null,
+    categoryId: null,
+    status: 'active',
+    note: null,
+    addedBy: null,
+    updatedAt: 1,
+    ...overrides,
+  });
+
+  const addInput = {
+    clientId: 'client-1',
+    name: 'Milk',
+    qtyValue: 1,
+    unitCode: 'l' as const,
+    categoryId: null,
+  };
+
+  it('an add matching an active row (by itemId) folds into it instead of appending', () => {
+    const b = board([store('s1', { items: [listItem('li1', { name: 'Milk', qtyValue: 2, unitCode: 'l' })] })]);
+    const next = applyListItemAdd(b, 's1', { ...addInput, itemId: 'item-li1' });
+    expect(next.stores[0]?.items).toHaveLength(1);
+    expect(next.stores[0]?.items[0]).toMatchObject({ id: 'li1', qtyValue: 3, unitCode: 'l' });
+    expect(next.stores[0]?.counts.total).toBe(1);
+  });
+
+  it('falls back to a name match when the add carries no itemId', () => {
+    const b = board([store('s1', { items: [listItem('li1', { name: 'Milk', qtyValue: 2, unitCode: 'l' })] })]);
+    const next = applyListItemAdd(b, 's1', addInput);
+    expect(next.stores[0]?.items).toHaveLength(1);
+    expect(next.stores[0]?.items[0]).toMatchObject({ id: 'li1', qtyValue: 3 });
+  });
+
+  it('no matching active row appends the pending placeholder', () => {
+    const b = board([store('s1', { items: [listItem('li1', { name: 'Atta', qtyValue: 5, unitCode: 'kg' })] })]);
+    const next = applyListItemAdd(b, 's1', addInput);
+    expect(next.stores[0]?.items).toHaveLength(2);
+    expect(next.stores[0]?.items[1]?.id).toBe('pending:client-1');
+  });
+
+  it('a bought row never absorbs the optimistic add', () => {
+    const b = board([store('s1', { items: [listItem('li1', { name: 'Milk', qtyValue: 2, unitCode: 'l', status: 'bought' })] })]);
+    const next = applyListItemAdd(b, 's1', addInput);
+    expect(next.stores[0]?.items).toHaveLength(2);
+    expect(next.stores[0]?.items[1]?.id).toBe('pending:client-1');
   });
 });

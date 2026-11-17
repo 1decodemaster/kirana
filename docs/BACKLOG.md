@@ -5,7 +5,7 @@ for v1 (PRD §1.5). Do not implement ahead — write it here instead (AGENTS.md 
 
 - [P3?] `item_aliases` has no `deleted_at` — alias removal is a hard row
   delete (UI confirms first). If soft-deleted aliases ever matter, claim
-  migration 0003 for a `deleted_at` column + partial-index rethink.
+  migration 0005 for a `deleted_at` column + partial-index rethink.
 - [P5] Nightly 03:00 backup (§12.4/NFR-11) is host cron / sidecar work, not
   in-process: `sqlite3 kirana.db ".backup …"` + gzip with the date-only name,
   or reuse POST /admin/backup. Needed before the P5 restore drill. The

@@ -2,6 +2,7 @@ import type Database from 'better-sqlite3';
 import {
   fold,
   hintCategory,
+  mergeAddIntoRow,
   newUuidV7,
   normalizeName,
   type ImportCommitResponse,
@@ -322,6 +323,47 @@ function attachListRow(
   const maxOrder = (db
     .prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM list_items WHERE store_id = ?')
     .get(storeId) as { m: number }).m;
+
+  // ADR-0007 parity: an import row lands on the store's existing active row
+  // for the item when there is one — importing onto a live board must not
+  // mint duplicates.
+  const existing = db
+    .prepare(
+      `SELECT id, qty_value, unit_code, category_id, note FROM list_items
+       WHERE store_id = ? AND item_id = ? AND status = 'active'
+       ORDER BY sort_order, created_at, id LIMIT 1`,
+    )
+    .get(storeId, itemId) as
+    | { id: string; qty_value: number | null; unit_code: string | null; category_id: string | null; note: string | null }
+    | undefined;
+
+  if (existing !== undefined) {
+    const merged = mergeAddIntoRow(
+      {
+        qtyValue: existing.qty_value,
+        unitCode: existing.unit_code,
+        categoryId: existing.category_id,
+        note: existing.note,
+      },
+      {
+        clientId: id, // unused by the merge; the add never carries one here
+        ...(row.qty !== null ? { qtyValue: row.qty } : {}),
+        ...(row.unit !== null ? { unitCode: row.unit } : {}),
+        note: row.note,
+      },
+    );
+    db.prepare(
+      `UPDATE list_items SET qty_value = ?, unit_code = ?, category_id = ?, note = ?, updated_at = ?
+       WHERE id = ?`,
+    ).run(merged.qtyValue, merged.unitCode, merged.categoryId, merged.note, now, existing.id);
+    appendChange(
+      db,
+      { entity: 'list_item', entityId: existing.id, op: 'update', storeId, actorId: actor.memberId },
+      now,
+    );
+    return;
+  }
+
   db.prepare(
     `INSERT INTO list_items (id, client_id, store_id, item_id, qty_value, unit_code, category_id,
             note, status, added_by, sort_order, created_at, updated_at)

@@ -1,8 +1,10 @@
 # STATUS
-Updated: 2026-11-16 by lane D (P4 T-P4-07 session — phase closed)
+Updated: 2026-11-17 (post-close maintenance — ADR-0007 list-row accumulation)
 Current phase: P4 complete → P5 next (Hardening & Release, §15.3)
 Phase progress: T-P4-01…T-P4-07 done; gates G4.1–G4.7 evidenced; tag
-phase-4-complete on the phase-close commit.
+phase-4-complete on the phase-close commit. Post-close: ADR-0007 (user
+request) — adds fold into the store's existing active row for the item,
+INV-6 enforced by service + migration 0004; web optimistic path mirrors it.
 
 ## Done this phase
 - T-P4-01: contract v1.4 (ADR-0005) — auth roster, household create/update,
@@ -39,8 +41,8 @@ shared/contracts.ts @ v1.4 (ADR-0005). openapi.json current.
 Schema hash pinned at 0003.
 
 ## Migration lock
-0003 applied (sessions). Next free: 0004 — claimed by the alias soft-delete
-backlog item when it runs.
+0004 applied (list-row consolidation, ADR-0007). Next free: 0005 — claimed
+by the alias soft-delete backlog item when it runs.
 
 ## Gates (evidence)
 - G4.1: e2e/specs/live-sync.spec.ts (two contexts, <1s, both viewports).
@@ -52,6 +54,6 @@ backlog item when it runs.
 - G4.6: server/__tests__/sessions.test.ts restart case; sessions table is
   disk-backed (the e2e harness cannot restart its own webServer).
 - G4.7: 124/124 e2e across mobile-chrome 375×667 + pixel-7; `pnpm verify`
-  407 unit/integration green.
+  433 unit/integration green (pre-ADR-0007 count was 407).
 
 (End of file)

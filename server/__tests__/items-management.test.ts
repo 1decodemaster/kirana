@@ -55,7 +55,8 @@ async function addItem(storeId_: string, itemId: string, extra: Record<string, u
   const res = await injectJson(app, 'POST', `/api/v1/stores/${storeId_}/items`, {
     payload: { clientId: newClientId(), itemId, ...extra },
   });
-  if (res.statusCode !== 201) throw new Error(`add failed: ${res.body}`);
+  // 201 = created; 200 = ADR-0007 merge into the store's existing row.
+  if (res.statusCode !== 200 && res.statusCode !== 201) throw new Error(`add failed: ${res.body}`);
 }
 
 describe('GET /items/:id (ADR-0003, §8.1 item detail)', () => {
@@ -279,12 +280,14 @@ describe('POST /items/merge (§7.2 #22, G3.5)', () => {
 
     await expect(injectJson(app, 'GET', `/api/v1/items/${source.id}`)).resolves.toMatchObject({ statusCode: 404 });
 
-    // all four list rows now point at the target (INV-8: counts only grow)
+    // Source rows moved to the target, then ADR-0007-consolidated per store:
+    // storeId's source row (qty 2) and target's own row fold into one
+    // (same-unit group: 2 + null → 2), Costco's row stands alone.
     const board = (await injectJson(app, 'GET', '/api/v1/board')).json() as {
       stores: Array<{ id: string; items: Array<{ itemId: string }> }>;
     };
     const rows = board.stores.flatMap((s) => s.items).filter((i) => i.itemId === target.id);
-    expect(rows).toHaveLength(4);
+    expect(rows).toHaveLength(2);
     const detail = getItemResponseSchema.parse((await injectJson(app, 'GET', `/api/v1/items/${target.id}`)).json());
     expect(detail.stats.timesAdded).toBe(4);
     expect(detail.stats.storeIds.sort()).toEqual([otherStore, storeId].sort());

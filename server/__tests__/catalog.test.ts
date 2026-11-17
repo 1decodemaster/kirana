@@ -36,7 +36,7 @@ afterAll(async () => {
 interface Added {
   readonly status: number;
   readonly body: {
-    listItem: { id: string; itemId: string; name: string; qtyValue: number | null; unitCode: string | null; categoryId: string | null; status: string };
+    listItem: { id: string; itemId: string; name: string; qtyValue: number | null; unitCode: string | null; categoryId: string | null; status: string; note: string | null };
     item: { id: string; name: string; norm: string; aliases: readonly string[]; defaultUnit: string | null; defaultCategoryId: string | null; iconRef: string | null };
     createdItem: boolean;
     createdAlias: boolean;
@@ -54,11 +54,14 @@ describe('POST /stores/:id/items — known items (§7.4)', () => {
     expect(created.status).toBe(201);
     expect(created.body.createdItem).toBe(true);
     const again = await add({ clientId: newClientId(clock), itemId: created.body.item.id, qtyValue: 1 });
-    expect(again.status).toBe(201);
+    // ADR-0007: the add lands on the store's existing active row → merge.
+    expect(again.status).toBe(200);
     expect(again.body.createdItem).toBe(false);
     expect(again.body.createdAlias).toBe(false);
+    expect(again.body.listItem.id).toBe(created.body.listItem.id);
     expect(again.body.listItem.itemId).toBe(created.body.item.id);
     expect(again.body.listItem.name).toBe('Milk');
+    expect(again.body.listItem.qtyValue).toBe(3);
   });
 
   it('resolves an alias to the existing item (no duplicate)', async () => {
@@ -114,7 +117,9 @@ describe('POST /stores/:id/items — new items (§6.4 step 5, §6.5)', () => {
     expect(first.body.item.defaultUnit).toBe('kg');
     const second = await add({ clientId: newClientId(clock), name: 'Rice' });
     expect(second.body.createdItem).toBe(false);
-    expect(second.body.listItem.qtyValue).toBeNull(); // no invented quantity
+    // ADR-0007: the quantity-less add merges into the row — the existing
+    // quantity stands; nothing is invented.
+    expect(second.body.listItem.qtyValue).toBe(5);
   });
 
   it('reuses the store-scoped category on the next add (§6.5 order)', async () => {
@@ -129,7 +134,8 @@ describe('POST /stores/:id/items — new items (§6.4 step 5, §6.5)', () => {
     const itemId = body.item.id;
     app.db.prepare('UPDATE items SET deleted_at = ? WHERE id = ?').run(clock.now(), itemId);
     const revived = await add({ clientId: newClientId(clock), name: 'Sabun' });
-    expect(revived.status).toBe(201);
+    // The revived add lands on the surviving (INV-6) active row → merge.
+    expect(revived.status).toBe(200);
     expect(revived.body.item.id).toBe(itemId);
     const count = app.db
       .prepare('SELECT COUNT(*) AS n FROM items WHERE household_id = ? AND name_norm = ?')
@@ -150,10 +156,10 @@ describe('POST /stores/:id/items — idempotency and dedupe gates', () => {
     expect(replay.body.createdItem).toBe(false);
   });
 
-  it('G2.3: adding the same name 100× creates exactly 1 item and 1 alias', async () => {
+  it('G2.3: adding the same name 100× creates exactly 1 item and 1 alias (and, since ADR-0007, 1 row)', async () => {
     for (let i = 0; i < 100; i++) {
       const res = await add({ clientId: newClientId(clock), name: 'Toor Dal' });
-      expect(res.status).toBe(201);
+      expect(res.status).toBe(i === 0 ? 201 : 200);
     }
     const items = app.db
       .prepare('SELECT COUNT(*) AS n FROM items WHERE household_id = ? AND name_norm = ?')
@@ -164,8 +170,15 @@ describe('POST /stores/:id/items — idempotency and dedupe gates', () => {
          WHERE i.household_id = ? AND i.name_norm = ?`,
       )
       .get(householdId, 'toor dal') as { n: number };
+    const rows = app.db
+      .prepare(
+        `SELECT COUNT(*) AS n FROM list_items li JOIN items i ON i.id = li.item_id
+         WHERE li.store_id = ? AND i.name_norm = ? AND li.status = 'active'`,
+      )
+      .get(storeId, 'toor dal') as { n: number };
     expect(items.n).toBe(1);
     expect(aliases.n).toBe(1);
+    expect(rows.n).toBe(1);
   });
 
   it('a deleted row frees its clientId for the undo re-add (BACKLOG P2)', async () => {
@@ -250,6 +263,94 @@ describe('POST /items — create catalog item (sheet "Create new anyway")', () =
       payload: { name: 'Jaggery', defaultCategoryId: '01913b5e-7d5a-7000-8000-0000000000fc' },
     });
     expect(res.statusCode).toBe(400);
+  });
+});
+
+describe('ADR-0007 — accumulation within a store', () => {
+  it('re-adding the same item sums quantities into one row (200, stats +1, change_log update)', async () => {
+    const first = await add({ clientId: newClientId(clock), name: 'Milk', qtyValue: 2, unitCode: 'l' });
+    expect(first.status).toBe(201);
+    const before = app.db.prepare('SELECT COALESCE(MAX(id), 0) AS rev FROM change_log').get() as { rev: number };
+    const second = await add({ clientId: newClientId(clock), name: 'milk', qtyValue: 1, unitCode: 'l' });
+    expect(second.status).toBe(200);
+    expect(second.body.listItem.id).toBe(first.body.listItem.id);
+    expect(second.body.listItem.qtyValue).toBe(3);
+
+    const rows = app.db
+      .prepare(
+        `SELECT COUNT(*) AS n FROM list_items li JOIN items i ON i.id = li.item_id
+         WHERE li.store_id = ? AND i.name_norm = ? AND li.status = 'active'`,
+      )
+      .get(storeId, 'milk') as { n: number };
+    expect(rows.n).toBe(1);
+
+    const stats = app.db
+      .prepare('SELECT times_added FROM item_store_stats WHERE item_id = ? AND store_id = ?')
+      .get(first.body.item.id, storeId) as { times_added: number };
+    expect(stats.times_added).toBe(2);
+
+    const entries = app.db
+      .prepare('SELECT entity, op FROM change_log WHERE id > ?')
+      .all(before.rev) as Array<{ entity: string; op: string }>;
+    expect(entries.map((e) => `${e.entity}:${e.op}`)).toEqual(['list_item:update']);
+  });
+
+  it('a bought row never merges — re-adding after buying makes a new row', async () => {
+    const first = await add({ clientId: newClientId(clock), name: 'Milk', qtyValue: 2, unitCode: 'l' });
+    await injectJson(app, 'PATCH', `/api/v1/list-items/${first.body.listItem.id}`, {
+      payload: { status: 'bought' },
+    });
+    const second = await add({ clientId: newClientId(clock), name: 'Milk', qtyValue: 1, unitCode: 'l' });
+    expect(second.status).toBe(201);
+    expect(second.body.listItem.id).not.toBe(first.body.listItem.id);
+    const rows = app.db
+      .prepare('SELECT COUNT(*) AS n FROM list_items WHERE store_id = ? AND item_id = ?')
+      .get(storeId, first.body.item.id) as { n: number };
+    expect(rows.n).toBe(2);
+  });
+
+  it('an explicitly different unit with a quantity replaces the row\u2019s qty/unit', async () => {
+    const first = await add({ clientId: newClientId(clock), name: 'Rice', qtyValue: 2, unitCode: 'l' });
+    const second = await add({ clientId: newClientId(clock), name: 'Rice', qtyValue: 1, unitCode: 'kg' });
+    expect(second.status).toBe(200);
+    expect(second.body.listItem.qtyValue).toBe(1);
+    expect(second.body.listItem.unitCode).toBe('kg');
+    expect(second.body.listItem.id).toBe(first.body.listItem.id);
+  });
+
+  it('an add without qty or unit leaves the row untouched but still counts the add', async () => {
+    const first = await add({ clientId: newClientId(clock), name: 'Milk', qtyValue: 2, unitCode: 'l' });
+    const second = await add({ clientId: newClientId(clock), name: 'Milk' });
+    expect(second.status).toBe(200);
+    expect(second.body.listItem.qtyValue).toBe(2);
+    const stats = app.db
+      .prepare('SELECT times_added FROM item_store_stats WHERE item_id = ? AND store_id = ?')
+      .get(first.body.item.id, storeId) as { times_added: number };
+    expect(stats.times_added).toBe(2);
+  });
+
+  it('different stores keep separate rows for the same item', async () => {
+    const otherStore = seedStore(app, householdId, 'Costco', clock.now());
+    const first = await add({ clientId: newClientId(clock), name: 'Milk', qtyValue: 2, unitCode: 'l' });
+    const other = await add({ clientId: newClientId(clock), name: 'Milk', qtyValue: 1, unitCode: 'l' }, otherStore);
+    expect(other.status).toBe(201);
+    expect(other.body.listItem.id).not.toBe(first.body.listItem.id);
+    expect(other.body.listItem.itemId).toBe(first.body.item.id);
+  });
+
+  it('an explicitly provided note or category replaces the merged row\u2019s', async () => {
+    await add({ clientId: newClientId(clock), name: 'Milk', qtyValue: 2, unitCode: 'l', note: 'full cream' });
+    const categoryId = seededCategoryId(app, 'Dairy & Eggs');
+    const second = await add({
+      clientId: newClientId(clock),
+      name: 'Milk',
+      note: 'toned',
+      categoryId,
+    });
+    expect(second.status).toBe(200);
+    expect(second.body.listItem.note).toBe('toned');
+    expect(second.body.listItem.categoryId).toBe(categoryId);
+    expect(second.body.listItem.qtyValue).toBe(2);
   });
 });
 

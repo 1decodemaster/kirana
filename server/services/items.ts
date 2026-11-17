@@ -11,7 +11,70 @@ import {
 import { httpError } from '../plugins/errors.js';
 import type { ActorContext } from './actor.js';
 import { appendChange } from './changeLog.js';
-import { categoryExists } from './categories.js';import { toItemDto, type AliasRecord, type ItemRowFull } from './mappers.js';
+import { categoryExists } from './categories.js';
+import { toItemDto, type AliasRecord, type ItemRowFull } from './mappers.js';
+
+/** ADR-0007 invariant, applied at runtime (mirrors migration 0004): at most
+ *  one ACTIVE row per (store, item). Used after a merge lands source rows on
+ *  stores where the target is already listed. Same-unit groups sum into the
+ *  survivor; mixed-unit groups keep the survivor's own quantities; bought
+ *  and cleared rows are never touched. */
+export function consolidateActiveRows(db: Database.Database, itemId: string, now: number): void {
+  db.prepare(
+    `UPDATE list_items
+     SET qty_value = (
+           SELECT SUM(li.qty_value)
+           FROM list_items li
+           WHERE li.store_id = list_items.store_id
+             AND li.item_id = list_items.item_id
+             AND li.status = 'active'
+         ),
+         updated_at = ?
+     WHERE item_id = ?
+       AND status = 'active'
+       AND id = (
+         SELECT li2.id
+         FROM list_items li2
+         WHERE li2.store_id = list_items.store_id
+           AND li2.item_id = list_items.item_id
+           AND li2.status = 'active'
+         ORDER BY li2.sort_order, li2.created_at, li2.id
+         LIMIT 1
+       )
+       AND (
+         SELECT COUNT(*)
+         FROM list_items li4
+         WHERE li4.store_id = list_items.store_id
+           AND li4.item_id = list_items.item_id
+           AND li4.status = 'active'
+       ) > 1
+       AND (
+         SELECT COUNT(DISTINCT IFNULL(li3.unit_code, '~null~'))
+         FROM list_items li3
+         WHERE li3.store_id = list_items.store_id
+           AND li3.item_id = list_items.item_id
+           AND li3.status = 'active'
+       ) <= 1`,
+  ).run(now, itemId);
+  db.prepare(
+    `DELETE FROM list_items
+     WHERE item_id = ?
+       AND status = 'active'
+       AND id NOT IN (
+         SELECT id
+         FROM (
+           SELECT id,
+                  ROW_NUMBER() OVER (
+                    PARTITION BY store_id, item_id
+                    ORDER BY sort_order, created_at, id
+                  ) AS rn
+           FROM list_items
+           WHERE item_id = ? AND status = 'active'
+         )
+         WHERE rn = 1
+       )`,
+  ).run(itemId, itemId);
+}
 
 interface FullItemRow extends ItemRowFull {
   readonly household_id: string;
@@ -245,6 +308,12 @@ export function mergeItems(
     db.prepare(
       'UPDATE list_items SET item_id = ?, updated_at = ? WHERE item_id = ?',
     ).run(target.id, now, source.id);
+
+    // ADR-0007 invariant: at most one ACTIVE row per (store, item). Rows
+    // that just landed on a store where the target is already listed fold
+    // into the target's row (same-unit sums; otherwise the first row's
+    // quantities stand — the same rule as migration 0004).
+    consolidateActiveRows(db, target.id, now);
 
     // Stats fold into the target's per-store rows (INV-8: times_added only
     // increases); a source-only store row moves across.
