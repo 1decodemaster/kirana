@@ -86,14 +86,12 @@ export async function seedDemoBoard(db: Database.Database, now: number): Promise
   if (household === undefined) {
     householdId = newUuidV7(now);
     // Usable demo passcode (ADR-0006): dev containers and the e2e harness
-    // log in with DEMO_PASSCODE.
+    // log in with DEMO_PASSCODE. Members come from DEMO_MEMBERS below —
+    // the pre-auth 'You' actor is gone with P4.
     const passcodeHash = await hashPasscode(DEMO_PASSCODE);
     db.prepare(
       'INSERT INTO households (id, name, passcode_hash, created_at) VALUES (?, ?, ?, ?)',
     ).run(householdId, 'Home', passcodeHash, now);
-    db.prepare(
-      'INSERT INTO members (id, household_id, display_name, color, created_at) VALUES (?, ?, ?, ?, ?)',
-    ).run(newUuidV7(now), householdId, 'You', '#4F46E5', now);
   } else {
     householdId = household.id;
   }

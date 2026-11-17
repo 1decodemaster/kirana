@@ -16,6 +16,11 @@ export interface AppConfig {
   readonly version: string;
   readonly revision: string;
   readonly backupKeepDaily: number;
+  /** §11 login rate limit (5/5min/IP). The e2e harness raises it — one IP
+   * shares every spec; production default is the PRD value. */
+  readonly loginRateLimit: number;
+  /** §11 mutation rate limit (120/min/session). Same harness override. */
+  readonly mutationRateLimit: number;
 }
 
 const LOG_LEVELS: ReadonlySet<string> = new Set(['fatal', 'error', 'warn', 'info', 'debug', 'trace']);
@@ -42,6 +47,22 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     }
     backupKeepDaily = parsed;
   }
+  let loginRateLimit = 5;
+  if (env.LOGIN_RATE_LIMIT !== undefined && env.LOGIN_RATE_LIMIT !== '') {
+    const parsed = Number(env.LOGIN_RATE_LIMIT);
+    if (!Number.isInteger(parsed) || parsed < 1) {
+      throw new ConfigError('LOGIN_RATE_LIMIT must be a positive integer');
+    }
+    loginRateLimit = parsed;
+  }
+  let mutationRateLimit = 120;
+  if (env.MUTATION_RATE_LIMIT !== undefined && env.MUTATION_RATE_LIMIT !== '') {
+    const parsed = Number(env.MUTATION_RATE_LIMIT);
+    if (!Number.isInteger(parsed) || parsed < 1) {
+      throw new ConfigError('MUTATION_RATE_LIMIT must be a positive integer');
+    }
+    mutationRateLimit = parsed;
+  }
   return {
     port,
     dataDir,
@@ -54,6 +75,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     version: readVersion(),
     revision: env.KIRANA_REVISION ?? 'dev',
     backupKeepDaily,
+    loginRateLimit,
+    mutationRateLimit,
   };
 }
 

@@ -4,6 +4,7 @@ import { RouterProvider } from 'react-router';
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { router } from './App';
 import { startOfflineQueue } from './api/client';
+import { QUEUE_DRAINED_EVENT } from './lib/offline';
 import { shouldRedirectToLogin } from './lib/session';
 import { applyThemePreference, loadThemePreference } from './lib/theme';
 import './styles/tokens.css';
@@ -50,8 +51,12 @@ registry.client = queryClient;
 // Restore the §8.2 theme override before first paint of the tree.
 applyThemePreference(loadThemePreference(window.localStorage), document.documentElement);
 
-// §4.7: replay queued mutations on boot and on reconnect.
+// §4.7: replay queued mutations on boot and on reconnect; a successful
+// replay invalidates the caches (the optimistic state became server state).
 startOfflineQueue();
+window.addEventListener(QUEUE_DRAINED_EVENT, () => {
+  void queryClient.invalidateQueries();
+});
 
 // G4.4 installability: the offline-shell service worker (production only —
 // the dev server has no dist to cache).

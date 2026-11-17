@@ -254,6 +254,7 @@ export function Settings(): React.JSX.Element {
             onSuccess: () => {
               void navigate('/login', { replace: true });
             },
+            onError,
           })
         }
         className="mt-4 min-h-11 w-full rounded-chip border border-danger/40 px-4 font-semibold text-danger hover:bg-danger/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"

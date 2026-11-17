@@ -32,7 +32,8 @@ describe('seedDemoBoard', () => {
     const members = db
       .prepare('SELECT display_name FROM members ORDER BY created_at')
       .all() as Array<{ display_name: string }>;
-    expect(members.map((m) => m.display_name)).toEqual(['You', 'Alex', 'Sam']);
+    // The pre-auth 'You' actor is gone with P4 — the demo board is Alex+Sam.
+    expect(members.map((m) => m.display_name)).toEqual(['Alex', 'Sam']);
     const stores = db
       .prepare('SELECT name, sort_order FROM stores WHERE deleted_at IS NULL ORDER BY sort_order')
       .all() as Array<{ name: string; sort_order: number }>;

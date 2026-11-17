@@ -34,6 +34,8 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
     backupKeepDaily: config.backupKeepDaily,
     sessionSecret: config.sessionSecret,
     appOrigin: config.appOrigin,
+    loginRateLimit: config.loginRateLimit,
+    mutationRateLimit: config.mutationRateLimit,
   });
 
   if (config.webDistDir !== undefined) {

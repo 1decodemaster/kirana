@@ -7,6 +7,7 @@ const DB_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '.tmp');
 const DB_FILE = path.join(DB_DIR, 'kirana.db');
 
 const DATA_TABLES = [
+  'sessions',
   'list_items',
   'item_store_stats',
   'item_aliases',

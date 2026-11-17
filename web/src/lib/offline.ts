@@ -76,6 +76,10 @@ export async function drainQueue(
 /** §4.7 "Updated elsewhere": a replay dropped as obsolete surfaces once. */
 export const QUEUE_DROPPED_EVENT = 'kirana:queue-dropped';
 
+/** Fired after a drain replayed at least one mutation — the UI must
+ * refetch (the optimistic state is now server state, possibly stale). */
+export const QUEUE_DRAINED_EVENT = 'kirana:queue-drained';
+
 // ── count pub-sub for the offline banner (§8.7) ─────────────────────────
 
 let count = 0;

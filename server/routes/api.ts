@@ -17,6 +17,8 @@ export interface ApiRoutesOptions {
   readonly backupKeepDaily: number;
   readonly sessionSecret: string;
   readonly appOrigin: string;
+  readonly loginRateLimit: number;
+  readonly mutationRateLimit: number;
 }
 
 // Deliberately NOT fastify-plugin: the CSRF + auth hooks and the request
@@ -34,7 +36,12 @@ export async function apiRoutes(app: FastifyInstance, opts: ApiRoutesOptions): P
 
   // §7.6 (P4): session auth — default-deny 401 on every non-public route,
   // per-session mutation rate limit (§11). Replaces the pre-auth actor stub.
-  registerAuth(app, { sessionSecret: opts.sessionSecret, appOrigin: opts.appOrigin });
+  registerAuth(app, {
+    sessionSecret: opts.sessionSecret,
+    appOrigin: opts.appOrigin,
+    loginRateLimit: opts.loginRateLimit,
+    mutationRateLimit: opts.mutationRateLimit,
+  });
 
   await app.register(authRoutes);
   await app.register(boardRoutes);

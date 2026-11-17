@@ -107,7 +107,7 @@ test('AC-H2 analogue: a check made in Shop Mode survives a reload', async ({ pag
   );
 });
 
-test('G15.3: offline reading works from the cache; failed checks roll back (queue lands in P4)', async ({
+test('G15.3: offline reading works from the cache; checks queue per P4 rules', async ({
   page,
   context,
 }) => {
@@ -116,8 +116,8 @@ test('G15.3: offline reading works from the cache; failed checks roll back (queu
   // Model "network unreachable" by aborting API calls: headless Chromium's
   // CDP offline emulation blackholes localhost fetches (they hang instead of
   // failing), while aborted requests fail fast exactly like a dead WAN. The
-  // cached board keeps rendering — offline reading is the P1.5 half of the
-  // gate; the mutation queue that would instead persist these checks is P4.
+  // cached board keeps rendering — offline reading is the first half of the
+  // gate (§15.3 G15.3).
   await context.route('**/api/**', (route) => route.abort('internetdisconnected'));
 
   // Client-side navigation and cached reads keep working (no full page load —
@@ -130,30 +130,48 @@ test('G15.3: offline reading works from the cache; failed checks roll back (queu
   await page.waitForURL(/\/store\//);
   await expect(page.getByRole('checkbox', { name: /Garbage Bags/ })).toBeVisible();
 
-  // A check while offline fails fast (browser still "online", WAN dead):
-  // the optimistic flip rolls back with the §8.7 banner, and the follow-up
-  // board refetch fails too — the screen offers Retry. Persisting offline
-  // checks instead is the P4 offline queue's job.
+  // P4 rules: a check while offline persists optimistically and queues for
+  // replay (§4.7) — it does NOT roll back.
   await page.getByRole('checkbox', { name: /Garbage Bags/ }).click();
-  await expect(page.getByRole('alert')).toContainText(/.+/i, { timeout: 10_000 });
   await expect(page.getByRole('checkbox', { name: /Garbage Bags/ })).toHaveAttribute(
     'aria-checked',
-    'false',
+    'true',
   );
 
-  // Wait out the refetch's retry while still offline: the §8.7 error state
-  // appears (inline message + Retry), never a blank screen.
-  await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible({ timeout: 10_000 });
-
-  // Recovery: back online, Retry reloads the board and the trip resumes.
+  // Recovery: the WAN returns; the boot drain replays the queued check.
   await context.unroute('**/api/**');
-  await page.getByRole('button', { name: 'Retry' }).click();
-  await expect(page.getByText('0/5')).toBeVisible();
+  await page.reload();
   await expect(page.getByRole('checkbox', { name: /Garbage Bags/ })).toBeVisible();
+  await expect(page.getByRole('checkbox', { name: /Garbage Bags/ })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  );
+  await expect(page.getByText('1/5')).toBeVisible();
+});
+
+test.afterEach(async ({ request }) => {
+  // This file checks rows for its scenarios — put them back to active so
+  // later specs (and the second viewport project) start from the demo state.
+  const board = (await (await request.get('/api/v1/board')).json()) as {
+    stores: Array<{ items: Array<{ id: string; status: string }> }>;
+  };
+  for (const store of board.stores) {
+    for (const item of store.items) {
+      if (item.status === 'bought') {
+        await request.patch(`/api/v1/list-items/${item.id}`, {
+          data: { status: 'active' },
+          headers: { 'x-requested-with': 'kirana' },
+        });
+      }
+    }
+  }
 });
 
 test('G15.4: exiting returns to Home with the same scroll position', async ({ page }) => {
   await page.goto('/');
+  // The scroll target only exists once the board has rendered — skeletons
+  // make the document too short to scroll.
+  await expect(page.getByRole('heading', { name: 'Indian Store' })).toBeVisible();
   // Scroll the Indian Store's menu button into view WITHOUT Playwright's
   // auto-scroll clobbering the position: 300 keeps it inside the viewport,
   // so the click happens exactly where the shopper left it.

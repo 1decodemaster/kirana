@@ -26,6 +26,8 @@ export interface ServerAuth {
 export interface AuthPluginOptions {
   readonly sessionSecret: string;
   readonly appOrigin: string;
+  readonly loginRateLimit?: number;
+  readonly mutationRateLimit?: number;
   readonly now?: () => number;
 }
 
@@ -50,8 +52,8 @@ export function registerAuth(app: FastifyInstance, opts: AuthPluginOptions): voi
   const now = opts.now ?? Date.now;
   const auth: ServerAuth = {
     sessions: new SessionStore(app.db, opts.sessionSecret, now),
-    loginLimiter: createRateLimiter(5, 5 * 60 * 1000, { escalate: true }),
-    mutationLimiter: createRateLimiter(120, 60 * 1000),
+    loginLimiter: createRateLimiter(opts.loginRateLimit ?? 5, 5 * 60 * 1000, { escalate: true }),
+    mutationLimiter: createRateLimiter(opts.mutationRateLimit ?? 120, 60 * 1000),
     now,
     appOrigin: opts.appOrigin,
     cookieOptions() {

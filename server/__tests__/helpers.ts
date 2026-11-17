@@ -21,6 +21,8 @@ export function makeConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     version: '0.1.0',
     revision: 'testrev',
     backupKeepDaily: 14,
+    loginRateLimit: 5,
+    mutationRateLimit: 120,
     ...overrides,
   };
 }

@@ -165,6 +165,46 @@ export async function restoreDemoBoard(): Promise<void> {
   }
 }
 
+/** First-run wizard prerequisite: no household may exist (§8.9). Wipes
+ *  store-scoped data AND the identity rows (sessions first — they reference
+ *  members). The caller must restoreDemoBoard afterwards. */
+export function wipeIdentityData(): void {
+  const db = openDatabase(DB_FILE);
+  try {
+    db.transaction(() => {
+      db.prepare('DELETE FROM sessions').run();
+      wipeHouseholdDataIn(db);
+      db.prepare('DELETE FROM members').run();
+      db.prepare('DELETE FROM households').run();
+      db.prepare('DELETE FROM change_log').run();
+    })();
+  } finally {
+    db.close();
+  }
+}
+
+/** Remove a clientId-replay artifact (G4.3): the list row created by the
+ *  replay spec and, if it was new, the catalog item behind it. */
+export function removeReplayArtifact(clientId: string): void {
+  const db = openDatabase(DB_FILE);
+  try {
+    db.transaction(() => {
+      const row = db
+        .prepare('SELECT item_id FROM list_items WHERE client_id = ?')
+        .get(clientId) as { item_id: string } | undefined;
+      db.prepare('DELETE FROM list_items WHERE client_id = ?').run(clientId);
+      if (row !== undefined) {
+        db.prepare('DELETE FROM item_store_stats WHERE item_id = ?').run(row.item_id);
+        db.prepare('DELETE FROM item_aliases WHERE item_id = ?').run(row.item_id);
+        db.prepare('DELETE FROM item_search WHERE item_id = ?').run(row.item_id);
+        db.prepare('DELETE FROM items WHERE id = ?').run(row.item_id);
+      }
+    })();
+  } finally {
+    db.close();
+  }
+}
+
 export async function boardOf(request: APIRequestContext): Promise<BoardResponse> {
   const res = await request.get('/api/v1/board');
   expect(res.ok()).toBeTruthy();
@@ -180,7 +220,7 @@ async function bulkCheck(
     data: { ids, checked },
     headers: { 'x-requested-with': 'kirana' },
   });
-  expect(res.ok()).toBeTruthy();
+  expect(res.ok(), `bulk-check failed: ${res.status()} ${(await res.text()).slice(0, 200)}`).toBeTruthy();
 }
 
 /** Deterministic start for a suite: every Costco row back to active and the
@@ -194,7 +234,10 @@ export async function resetCostco(request: APIRequestContext): Promise<void> {
       data: { status: 'active' },
       headers: { 'x-requested-with': 'kirana' },
     });
-    expect(reopen.ok()).toBeTruthy();
+    expect(
+      reopen.ok(),
+      `reopen failed: ${reopen.status()} ${(await reopen.text()).slice(0, 200)}`,
+    ).toBeTruthy();
   }
   const ids = costco.items.map((i) => i.id);
   if (ids.length > 0) await bulkCheck(request, ids, false);

@@ -2,8 +2,10 @@ import type { ApiError as ApiErrorDto } from '@kirana/shared';
 import {
   drainQueue,
   enqueueMutation,
+  getQueueCount,
   idbQueueStore,
   isQueueable,
+  QUEUE_DRAINED_EVENT,
   QUEUE_DROPPED_EVENT,
   refreshQueueCount,
   type QueueStore,
@@ -140,16 +142,26 @@ export async function drainMutationQueue(): Promise<void> {
     }
   });
   await refreshQueueCount(store);
+  if (result.replayed > 0 && typeof window !== 'undefined') {
+    // The optimistic state is now server state — the UI must refetch (Shop
+    // Mode has no SSE client of its own, so the drain announces itself).
+    window.dispatchEvent(new Event(QUEUE_DRAINED_EVENT));
+  }
   if (result.dropped > 0 && typeof window !== 'undefined') {
     window.dispatchEvent(new Event(QUEUE_DROPPED_EVENT));
   }
 }
 
-/** Wire boot + reconnect draining (main.tsx calls this once). */
+/** Wire boot + reconnect draining (main.tsx calls this once). The interval
+ * catches the hung-WAN case where the browser never fires 'online' but the
+ * route came back — a queued mutation then drains within 15s. */
 export function startOfflineQueue(): void {
   if (typeof window === 'undefined') return;
   void drainMutationQueue();
   window.addEventListener('online', () => void drainMutationQueue());
+  window.setInterval(() => {
+    if (getQueueCount() > 0) void drainMutationQueue();
+  }, 15_000);
 }
 
 /** multipart upload (§7.2 #28): the browser sets the boundary header. */
