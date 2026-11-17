@@ -10,6 +10,9 @@ docs/progress/PHASE-4.md; merge order contracts → backend → web → e2e.
   @kirana/db, session store + cache, default-deny auth on /api/v1,
   login/mutation rate limits, household create + members APIs, demo seed
   logs in with DEMO_PASSCODE '0000'; schema hash repinned to 0003.
+- T-P4-03: GET /events SSE (§7.5 frames, 20s heartbeat, Last-Event-ID,
+  20-conn/session cap, 250ms poll ≤ NFR-7), change_log audit complete,
+  /board?since delta verified (already tested). Server half of G4.1 done.
 
 ## In progress
 - none.
@@ -25,9 +28,9 @@ docs/progress/PHASE-4.md; merge order contracts → backend → web → e2e.
   integration `pnpm verify` is green (374 tests).
 
 ## Next
-- T-P4-03: GET /events SSE (§7.5: tail, heartbeat 20s, Last-Event-ID,
-  ≤20 conns/session, NFR-7 ≤1s) + change_log completeness audit + /board
-  delta verification. Then T-P4-04…06 (web), T-P4-07 (e2e close).
+- T-P4-04 (web): first-run wizard (§8.9), login/session screens,
+  /settings (household, members, theme, about). Then T-P4-05 SSE client +
+  offline queue, T-P4-06 PWA/a11y, T-P4-07 e2e close.
 
 ## Contract state
 shared/contracts.ts @ v1.4 (ADR-0005). openapi.json current.

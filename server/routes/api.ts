@@ -3,6 +3,7 @@ import { registerAuth } from '../plugins/auth.js';
 import { httpError } from '../plugins/errors.js';
 import { authRoutes } from './auth.js';
 import { boardRoutes } from './board.js';
+import { eventRoutes } from './events.js';
 import { storeRoutes } from './stores.js';
 import { listItemRoutes } from './listItems.js';
 import { itemRoutes } from './items.js';
@@ -37,6 +38,7 @@ export async function apiRoutes(app: FastifyInstance, opts: ApiRoutesOptions): P
 
   await app.register(authRoutes);
   await app.register(boardRoutes);
+  await app.register(eventRoutes);
   await app.register(storeRoutes);
   await app.register(listItemRoutes);
   await app.register(itemRoutes);

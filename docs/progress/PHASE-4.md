@@ -143,6 +143,49 @@ Learned:    (a) Node's scrypt needs no maxmem override at N=16384/r=8 —
             registration order: the CSRF hook (403) precedes auth (401) on
             header-less mutations. (d) The e2e harness env already carried
             SESSION_SECRET — the P0 author anticipated P4.
-Next:       T-P4-03 — household create already landed with this card
-            (routes/auth.ts); next is GET /events SSE + change_log audit +
-            /board delta verification.
+Next:       T-P4-03 — GET /events SSE + change_log audit + /board delta
+            verification.
+
+## 2026-11-16 — lane A — T-P4-03 (SSE /events + sync backend complete)
+
+Built:      routes/events.ts — GET /events?since=<revision> per §7.5:
+            change_log tail as `event: change` / `id: <rev>` / `data:` JSON
+            frames (changeEventSchema), 20s heartbeat comment, Last-Event-
+            ID honoured when since is absent, replay bounded at 500 rows,
+            per-session connection cap 20 → 429 (§11), poll interval 250ms
+            → propagation ≪1s (NFR-7), reply.hijack + raw writeHead +
+            flushHeaders, cleanup on socket close (slot freed, intervals
+            cleared). services/events.ts: changesSince (pure, capped) +
+            formatSseEvent + SSE_HEADERS (no-transform, x-accel-buffering:
+            no for the R-5 proxy risk). change_log completeness audit:
+            every mutating service appends rows (stores 6 sites, listItems
+            3 + clearBought/bulkCheck per-row, items, categories, import
+            commit, members via T-P4-02). /board?since= delta was already
+            implemented + tested (board.test.ts §7.2 #5 block) — verified,
+            no change.
+Tests:      `pnpm verify` green: 96 shared + 38 db + 37 web + 214 server
+            (+11 events tests: formatting 4, streaming integration 7 —
+            replay+live tail, Last-Event-ID, 401, connection cap 20, slot
+            release, list_item propagation <1s). `pnpm contracts:check`
+            green (v1.4 unchanged — /events was documented at v1.0).
+Decisions:  (1) Poll (250ms) instead of a change-notification primitive —
+            better-sqlite3 has none and polling an indexed PK cursor is
+            cheap; NFR-7's 1s budget has 4× headroom. (2) Headers are
+            flushed on connect (flushHeaders) — writeHead alone buffers
+            until the first body write, and an idle stream has none for up
+            to heartbeatMs (this exact bug hung every header-only SSE test
+            for 5s each; the passing tests were the ones whose replay
+            wrote frames). (3) No-since connect starts at currentRevision
+            (fresh streams get only new events); reconnects replay from
+            Last-Event-ID.
+Deviations: None to the PRD. No contract change; no migration.
+Learned:    (a) ServerResponse.writeHead does NOT flush — always
+            flushHeaders() for event streams. (b) AGENTS/PHASE-3 note
+            confirmed again: never pkill -f "server/dist/index.js" (the
+            demo container respawns); kill by port (fuser -k). (c) A
+            hanging http.get in a vitest test shows up as a 5s test
+            timeout, not a socket error — instrument the handler before
+            suspecting the client.
+Next:       T-P4-04 — web: first-run wizard (§8.9), login/session screens,
+            /settings (household, members, theme, about). Contract v1.4
+            frozen.
