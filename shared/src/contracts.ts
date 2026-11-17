@@ -65,6 +65,30 @@ export const meResponseSchema = z.object({
   member: memberDtoSchema,
   household: householdDtoSchema,
 });
+export const authMembersRequestSchema = z.object({ passcode: passcodeSchema });
+export const authMembersResponseSchema = z.object({ members: z.array(memberDtoSchema) });
+export const createHouseholdRequestSchema = z.object({
+  name: nameSchema,
+  passcode: passcodeSchema,
+  displayName: displayNameSchema,
+  color: colorSchema,
+  seedSampleData: z.boolean().optional(),
+});
+export const createHouseholdResponseSchema = meResponseSchema;
+export const updateHouseholdRequestSchema = z.object({
+  name: nameSchema.optional(),
+  passcode: passcodeSchema.optional(),
+});
+export const householdMutationResponseSchema = z.object({ household: householdDtoSchema });
+export const createMemberRequestSchema = z.object({
+  displayName: displayNameSchema,
+  color: colorSchema,
+});
+export const updateMemberRequestSchema = z.object({
+  displayName: displayNameSchema.optional(),
+  color: colorSchema.optional(),
+});
+export const memberMutationResponseSchema = z.object({ member: memberDtoSchema });
 
 export const storeCountsSchema = z.object({
   total: z.number().int().nonnegative(),
@@ -351,6 +375,15 @@ export type HouseholdDto = z.infer<typeof householdDtoSchema>;
 export type LoginRequest = z.infer<typeof loginRequestSchema>;
 export type LoginResponse = z.infer<typeof loginResponseSchema>;
 export type MeResponse = z.infer<typeof meResponseSchema>;
+export type AuthMembersRequest = z.infer<typeof authMembersRequestSchema>;
+export type AuthMembersResponse = z.infer<typeof authMembersResponseSchema>;
+export type CreateHouseholdRequest = z.infer<typeof createHouseholdRequestSchema>;
+export type CreateHouseholdResponse = z.infer<typeof createHouseholdResponseSchema>;
+export type UpdateHouseholdRequest = z.infer<typeof updateHouseholdRequestSchema>;
+export type HouseholdMutationResponse = z.infer<typeof householdMutationResponseSchema>;
+export type CreateMemberRequest = z.infer<typeof createMemberRequestSchema>;
+export type UpdateMemberRequest = z.infer<typeof updateMemberRequestSchema>;
+export type MemberMutationResponse = z.infer<typeof memberMutationResponseSchema>;
 export type StoreCounts = z.infer<typeof storeCountsSchema>;
 export type ListItemDto = z.infer<typeof listItemDtoSchema>;
 export type CategoryDto = z.infer<typeof categoryDtoSchema>;

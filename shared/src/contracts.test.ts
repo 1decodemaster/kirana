@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   addListItemRequestSchema,
+  authMembersRequestSchema,
   boardResponseSchema,
+  createHouseholdRequestSchema,
+  createMemberRequestSchema,
   errorResponseSchema,
   healthResponseSchema,
   importRowDtoSchema,
+  updateHouseholdRequestSchema,
 } from './contracts.js';
 import { normalizeName } from './normalize.js';
 import { parseQty } from './parseQty.js';
@@ -145,6 +149,83 @@ describe('importRowDtoSchema (PRD §9.3)', () => {
         }).action,
       ).toBe(action);
     }
+  });
+});
+
+describe('household + member contract additions (ADR-0005, PRD §8.9)', () => {
+  const V7B = '01913b5e-7d5a-7000-8000-000000000002';
+
+  it('createHouseholdRequestSchema requires name, passcode, displayName, color', () => {
+    expect(
+      createHouseholdRequestSchema.parse({
+        name: 'Home',
+        passcode: '1234',
+        displayName: 'Alex',
+        color: '#4F46E5',
+      }),
+    ).toMatchObject({ name: 'Home' });
+    expect(
+      createHouseholdRequestSchema.parse({
+        name: 'Home',
+        passcode: '1234',
+        displayName: 'Alex',
+        color: '#4F46E5',
+        seedSampleData: false,
+      }).seedSampleData,
+    ).toBe(false);
+    expect(
+      createHouseholdRequestSchema.safeParse({ name: 'Home', passcode: '1234' }).success,
+    ).toBe(false);
+    expect(
+      createHouseholdRequestSchema.safeParse({
+        name: 'Home',
+        passcode: '12',
+        displayName: 'Alex',
+        color: '#4F46E5',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('updateHouseholdRequestSchema accepts name and/or passcode, strips unknowns', () => {
+    expect(updateHouseholdRequestSchema.parse({ name: 'Home', passcode: '5678' })).toEqual({
+      name: 'Home',
+      passcode: '5678',
+    });
+    expect(updateHouseholdRequestSchema.parse({})).toEqual({});
+    expect(updateHouseholdRequestSchema.safeParse({ passcode: 12 }).success).toBe(false);
+  });
+
+  it('authMembersRequestSchema is passcode-only and strips extras', () => {
+    expect(authMembersRequestSchema.parse({ passcode: '1234', hacker: true })).toEqual({
+      passcode: '1234',
+    });
+  });
+
+  it('createMemberRequestSchema requires a displayName and hex color', () => {
+    expect(createMemberRequestSchema.parse({ displayName: 'Sam', color: '#16A34A' })).toEqual({
+      displayName: 'Sam',
+      color: '#16A34A',
+    });
+    expect(createMemberRequestSchema.safeParse({ displayName: 'Sam', color: 'indigo' }).success).toBe(
+      false,
+    );
+    expect(
+      createMemberRequestSchema.safeParse({ displayName: '', color: '#16A34A' }).success,
+    ).toBe(false);
+  });
+
+  it('member identity fields stay distinct across the two create requests', () => {
+    const household = createHouseholdRequestSchema.parse({
+      name: 'Home',
+      passcode: '1234',
+      displayName: 'Alex',
+      color: '#4F46E5',
+      seedSampleData: true,
+    });
+    const member = createMemberRequestSchema.parse({ displayName: 'Sam', color: '#16A34A' });
+    expect(household.displayName).toBe('Alex');
+    expect(member.displayName).toBe('Sam');
+    expect(V7B).not.toBe(V7);
   });
 });
 
