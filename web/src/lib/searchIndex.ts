@@ -9,6 +9,7 @@ import {
   type CatalogItemDto,
   type ResolveCandidate,
   type ResolveDecision,
+  type SearchCandidate,
   type SearchResultDto,
   type SearchSignals,
 } from '@kirana/shared';
@@ -20,14 +21,19 @@ import {
 export interface CatalogEntry {
   readonly item: CatalogItemDto;
   readonly signals: SearchSignals;
+  /** §8.6 candidate precomputed once per item — rebuild-per-query made
+   * NFR-5 (≤30ms @ 5,000 items) a coin flip; scoring alone is the hot path. */
+  readonly candidate: SearchCandidate;
 }
 
 export function buildIndex(catalog: readonly CatalogItemDto[]): CatalogEntry[] {
   // Validation of candidates happens inside searchScore; here we only pair
-  // each item with its §8.6 signals (stats are optional on the wire).
+  // each item with its §8.6 signals (stats are optional on the wire) and its
+  // precomputed candidate.
   return catalog.map((item) => ({
     item,
     signals: item.stats ?? EMPTY_SIGNALS,
+    candidate: buildSearchCandidate(item.name, item.aliases),
   }));
 }
 
@@ -44,8 +50,7 @@ export function searchCatalog(
 
   const scored: Array<{ entry: CatalogEntry; score: number; quality: number; via: SearchResultDto['matchedVia'] }> = [];
   for (const entry of index) {
-    const candidate = buildSearchCandidate(entry.item.name, entry.item.aliases);
-    const match = searchScore(prepared, candidate, entry.signals, storeId, now);
+    const match = searchScore(prepared, entry.candidate, entry.signals, storeId, now);
     if (match === null) continue;
     scored.push({ entry, score: match.score, quality: match.quality, via: match.via });
   }

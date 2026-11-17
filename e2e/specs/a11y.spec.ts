@@ -39,3 +39,48 @@ test('Catalog has zero critical axe violations', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Catalog' })).toBeVisible();
   await expectNoCriticalOrSerious(page, 'Catalog');
 });
+
+// ── P5 final pass: the remaining screens, same bar (T-P5-02) ──────────────
+
+test('Stores has zero critical axe violations', async ({ page }) => {
+  await page.goto('/stores');
+  await expect(page.getByRole('heading', { name: 'Stores' })).toBeVisible();
+  await expectNoCriticalOrSerious(page, 'Stores');
+});
+
+test('Categories has zero critical axe violations', async ({ page }) => {
+  await page.goto('/categories');
+  await expect(page.getByRole('heading', { name: 'Categories' })).toBeVisible();
+  await expectNoCriticalOrSerious(page, 'Categories');
+});
+
+test('Item detail has zero critical axe violations', async ({ page, request }) => {
+  const res = await request.get('/api/v1/items?limit=1');
+  const { items } = (await res.json()) as { items: Array<{ id: string }> };
+  const first = items[0];
+  if (first === undefined) throw new Error('catalog is empty');
+  await page.goto(`/catalog/${first.id}`);
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await expectNoCriticalOrSerious(page, 'Item detail');
+});
+
+test('Data has zero critical axe violations', async ({ page }) => {
+  await page.goto('/data');
+  await expect(page.getByRole('heading', { name: 'Data' })).toBeVisible();
+  await expectNoCriticalOrSerious(page, 'Data');
+});
+
+test('Settings has zero critical axe violations', async ({ page }) => {
+  await page.goto('/settings');
+  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
+  await expectNoCriticalOrSerious(page, 'Settings');
+});
+
+test('Login has zero critical axe violations', async ({ browser }) => {
+  const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+  const page = await context.newPage();
+  await page.goto('/login');
+  await expect(page.getByRole('heading', { name: 'Kirana' })).toBeVisible();
+  await expectNoCriticalOrSerious(page, 'Login');
+  await context.close();
+});
