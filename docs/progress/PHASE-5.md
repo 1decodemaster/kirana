@@ -273,3 +273,57 @@ Learned:    G5.3 was already satisfied by discipline — zero TODO markers
             after five phases; the sweep took one grep.
 Next:       T-P5-05 — release: merge P3+P4 to main (owner's go), P5 PR,
             CI green twice (G5.4), version bump, tag v1.0.0 (G5.6).
+
+## 2026-11-17 — release — T-P5-05 (merge to main, CI ×2, v1.0.0)
+
+Built:      Owner-approved release path executed. P5 work committed on
+            chore/p5/hardening (5 commits: T-P5-01 harness, T-P5-02 client
+            perf + a11y, T-P5-03 operator guide, T-P5-04 docs close,
+            version bump). PR #3 (feat/p4/contract-v14 → main) — CI green
+            (verify + e2e + docker; first CI contact with the P3/P4 code)
+            — fast-forward-merged (SHAs preserved, tags stay on main's
+            history). PR #4 (chore/p5/hardening → main) — CI green, then
+            the workflow re-run green again = **two consecutive green
+            runs on the release state (G5.4)** — ff-merged. Tags
+            `phase-5-complete` + `v1.0.0` (annotated) on 03fc830, pushed.
+Tests:      Local before push: `pnpm verify` 437 green; `pnpm e2e` 140/140
+            (124 + 16 new) across both viewports. CI: PR #3 all green;
+            PR #4 run 1 green + rerun green (G5.4 evidence:
+            actions/runs/44131094670 + its rerun).
+Decisions:  (1) Fast-forward merges over squash — preserves the 33+5
+            commit narrative on main and keeps phase tags meaningful
+            (owner-selected). (2) G5.4's "twice consecutively" = the PR
+            run + `gh run rerun` of the same workflow (independent
+            runners, fresh environments) on the exact release SHA.
+            (3) Version bump is its own `chore(release)` commit; root
+            package.json is contract territory (§17.5) — bump only, no
+            dependency change, noted in the commit.
+Deviations: None. (CI annotation: actions now warn they target Node 20 —
+            cosmetic, runner forces Node 24; noted for a future chore.)
+Learned:    A manual ff-push after a green PR keeps both the PR record
+            (GitHub auto-marks it merged when main contains the head) and
+            the SHA-exact history — no rebase, no force.
+Next:       Owner: run docs/DEVICE-CHECKLIST.md on real hardware and
+            record one line per device in PHASE-5.md. Post-1.0: P6 per
+            §13, only after the checklist.
+
+## Handoff (P5 complete — v1.0.0 shipped)
+
+Done:        T-P5-01…T-P5-05. Gates: G5.1 numbers table (this file); G5.2
+             drill RTO 1.57s; G5.3 zero TODO markers; G5.4 CI green twice
+             on the release state; G5.5 README operator guide; G5.6 tags
+             phase-5-complete + v1.0.0 pushed to origin.
+Tests:       437 unit/integration (`pnpm verify`) + 140 e2e (`pnpm e2e`)
+             green locally; CI verify + e2e + docker green ×2.
+Contract:    shared/contracts.ts @ v1.4; openapi.json current; schema hash
+             0003; migrations 0001–0004 applied.
+Branch/tag:  main @ 03fc830 (release); tags phase-5-complete, v1.0.0.
+Owner items: run docs/DEVICE-CHECKLIST.md (real-device NFR-4/13 numbers →
+             PHASE-5.md); delete data/kirana.db.pre-drill when satisfied;
+             the demo container was restore-drilled and is healthy.
+Open items:  R-014 (import grocery-scope categories); BACKLOG (alias
+             soft-delete needs migration 0005, §6.7 nightly purge is a P6
+             job, JSON import loses row status, code-split when bundle
+             matters, CI actions Node-20 deprecation warning).
+Next:        P6 — Intelligence per §13, only after the device checklist
+             and only as five independent increments.
