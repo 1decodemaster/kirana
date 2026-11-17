@@ -21,6 +21,7 @@ import { MenuSheet } from '../components/MenuSheet';
 import { StoreFormSheet, type StoreFormValues } from '../components/StoreFormSheet';
 import { AddItemSheet } from '../components/AddItemSheet';
 import { UndoToast } from '../components/UndoToast';
+import { dismissAddCoachMark, isAddCoachMarkDismissed } from '../lib/coachmark';
 import { cn } from '../lib/utils';
 
 const EXPANDED_KEY = 'kirana.expanded-stores';
@@ -105,6 +106,8 @@ export function Home(): React.JSX.Element {
   // The + FAB slides off the right edge at the bottom of the page so it never
   // covers the Archived section (user-reported overlap).
   const [fabHidden, setFabHidden] = useState(false);
+  // §8.9 step 6: the coach-mark shows until the first add on an empty board.
+  const [coachDismissed, setCoachDismissed] = useState(() => isAddCoachMarkDismissed(window.localStorage));
 
   useEffect(() => {
     let raf = 0;
@@ -133,7 +136,15 @@ export function Home(): React.JSX.Element {
 
   const addItem = useCallback(
     (input: { storeId: string; body: AddListItemRequest; displayName: string }) => {
-      addListItem.mutate(input, { onError: onMutationError });
+      addListItem.mutate(input, {
+        onError: onMutationError,
+        // §8.9 step 6: the `+` coach-mark is dismissed forever after the
+        // first successful add.
+        onSuccess: () => {
+          dismissAddCoachMark(window.localStorage);
+          setCoachDismissed(true);
+        },
+      });
     },
     [addListItem, onMutationError],
   );
@@ -247,7 +258,7 @@ export function Home(): React.JSX.Element {
   return (
     <div className="p-4">
       <header className="flex items-center justify-between">
-        <h1 className="text-store font-semibold">Home</h1>
+        <h1 className="text-store font-semibold">{data.household.name}</h1>
         <ul className="flex -space-x-1.5" aria-label={`${data.household.name} members`}>
           {data.members.map((member) => (
             <li key={member.id}>
@@ -367,6 +378,17 @@ export function Home(): React.JSX.Element {
           )}
         </>
       )}
+
+      {!coachDismissed &&
+        data.stores.every((store) => store.counts.total === 0) &&
+        data.stores.length > 0 && (
+          <div
+            role="status"
+            className="fixed bottom-36 right-4 z-30 max-w-48 rounded-card border border-border bg-surface px-3 py-2 text-item shadow-lg lg:bottom-24 lg:left-64 lg:right-auto"
+          >
+            Tap + to add your first item
+          </div>
+        )}
 
       <button
         type="button"

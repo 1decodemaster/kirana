@@ -13,6 +13,11 @@ docs/progress/PHASE-4.md; merge order contracts → backend → web → e2e.
 - T-P4-03: GET /events SSE (§7.5 frames, 20s heartbeat, Last-Event-ID,
   20-conn/session cap, 250ms poll ≤ NFR-7), change_log audit complete,
   /board?since delta verified (already tested). Server half of G4.1 done.
+- T-P4-04: web /login (passcode → member picker), /welcome first-run
+  wizard (§8.9, 5 steps + coach-mark), /settings (household, members,
+  theme with data-theme override, about, sign out); 401 → session-expired
+  redirect; Home header shows the household name. Verified by throwaway
+  Playwright smoke at 375×667 incl. keyboard-only login.
 
 ## In progress
 - none.
@@ -28,9 +33,9 @@ docs/progress/PHASE-4.md; merge order contracts → backend → web → e2e.
   integration `pnpm verify` is green (374 tests).
 
 ## Next
-- T-P4-04 (web): first-run wizard (§8.9), login/session screens,
-  /settings (household, members, theme, about). Then T-P4-05 SSE client +
-  offline queue, T-P4-06 PWA/a11y, T-P4-07 e2e close.
+- T-P4-05 (web): SSE client (§7.5 refetch rules), offline mutation queue
+  (§4.7, IndexedDB, clientId replay), offline banner (§8.7). Then
+  T-P4-06 PWA/a11y, T-P4-07 e2e close (G4.1–G4.7).
 
 ## Contract state
 shared/contracts.ts @ v1.4 (ADR-0005). openapi.json current.

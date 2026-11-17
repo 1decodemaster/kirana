@@ -29,12 +29,14 @@ interface RequestOptions {
   readonly method: 'GET' | 'POST' | 'PATCH' | 'DELETE' | 'PUT';
   readonly body?: unknown;
   readonly signal?: AbortSignal;
+  /** Resolve path from the origin root instead of /api/v1 (healthz, §7.2 #32). */
+  readonly absolute?: boolean;
 }
 
 export async function api<T>(path: string, options: RequestOptions): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`${BASE}${path}`, {
+    response = await fetch(`${options.absolute === true ? '' : BASE}${path}`, {
       method: options.method,
       headers: {
         // §7.1: every mutation carries the CSRF header. Content-Type only
@@ -113,6 +115,8 @@ async function parseResponse<T>(response: Response): Promise<T> {
 
 export const get = <T>(path: string, signal?: AbortSignal): Promise<T> =>
   api<T>(path, { method: 'GET', signal });
+export const getRoot = <T>(path: string, signal?: AbortSignal): Promise<T> =>
+  api<T>(path, { method: 'GET', signal, absolute: true });
 export const post = <T>(path: string, body?: unknown): Promise<T> =>
   api<T>(path, { method: 'POST', body });
 export const patch = <T>(path: string, body: unknown): Promise<T> =>

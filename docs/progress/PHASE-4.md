@@ -189,3 +189,57 @@ Learned:    (a) ServerResponse.writeHead does NOT flush — always
 Next:       T-P4-04 — web: first-run wizard (§8.9), login/session screens,
             /settings (household, members, theme, about). Contract v1.4
             frozen.
+
+## 2026-11-16 — lane B — T-P4-04 (web: wizard, login, settings)
+
+Built:      /login (§7.6): passcode step → POST /auth/members roster →
+            member picker → POST /auth/login → clear cache → Home; ?expired
+            banner shows the §8.10 copy only when a session actually died
+            (a query that already had data 401'd), not on first visit;
+            401/404/429 messages verbatim from the deck. /welcome (§8.9
+            five steps + coach-mark landing): household name → passcode +
+            confirm → display name + 8-swatch color → seed toggle (default
+            on) → first store (12 emoji presets + free-text emoji, skippable)
+            → POST /household then POST /stores → Home; 403 renders "A
+            household already exists.". /settings (§8.1): Household (name +
+            passcode sheets), Members (list with avatars, add/edit sheets
+            with the color palette, remove with confirm — disabled for the
+            last member; 400/403 stay inline, other errors close the sheet
+            into a dismissible banner), Theme (System/Light/Dark radios →
+            data-theme attribute, tokens.css data-theme blocks added),
+            About (version + revision from public /healthz), Sign out.
+            main.tsx: queryCache/mutationCache onError → shouldRedirectToLogin
+            (lib/session.ts) → cache clear + /login. Home: header now shows
+            data.household.name (§8.3) and the §8.9 coach-mark bubble above
+            the + on an empty board, dismissed forever after the first add
+            (lib/coachmark.ts). api: useAuthMembers/useLogin/useLogout/
+            useCreateHousehold/usePatchHousehold/useCreateMember/
+            useUpdateMember/useDeleteMember/useHealth (getRoot for /healthz).
+Tests:      `pnpm verify` green: 96 shared + 38 db + 48 web (+11: prefs
+            theme/coachmark/colors 7, session redirect 4) + 214 server.
+            Throwaway Playwright smoke (not committed; committed specs are
+            T-P4-07) at 375×667: login→picker→Home (household name +
+            avatars), settings sections + theme data-theme round-trip +
+            household rename + sign out, full wizard → Home with coach-mark
+            + "Corner Shop", second-household 403 copy, keyboard-only login
+            (fill → Enter → Tab → Enter → Home). All green.
+Decisions:  (1) The wizard's first store reuses POST /stores client-side —
+            ADR-0005 kept the endpoint minimal; a failed store-create after
+            a successful household create still lands on Home (§8.9 step 6
+            works regardless). (2) Expired-banner heuristic: only when the
+            failing query had cached data — first-visit 401s get the plain
+            login. (3) Member color palette is a fixed 8-swatch UI choice
+            (contract keeps free hex). (4) Settings remove-member button is
+            disabled at ≤1 members rather than relying on the 403. (5) New
+            microcopy added to §8.10 in the same change (login, wizard,
+            settings, coach-mark — 24 rows) per AGENTS.md §5.
+Deviations: None to the PRD. Contract v1.4 unchanged; no migration.
+Learned:    (a) Playwright .tap() needs hasTouch — Desktop Chrome without
+            the option throws; the committed e2e projects (pixel-7) have
+            it. (b) The login rate limiter is per-IP in server memory:
+            repeated smoke runs from 127.0.0.1 trip 429s — restart the
+            debug server between smoke suites. (c) light-my-request curl
+            checks need Accept: text/html for the SPA fallback; browsers
+            always send it. (d) getByText matches section headings twice
+            when a nav rail also has the label — prefer getByRole('heading').
+Next:       T-P4-05 — web SSE client + offline queue + offline banner.

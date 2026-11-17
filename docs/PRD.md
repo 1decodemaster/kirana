@@ -1178,6 +1178,31 @@ Server returns `matchedVia: 'name' | 'alias' | 'fuzzy'` and `inStore: boolean` s
 | Data backup hint | "A snapshot of the whole database, saved on the host." |
 | Data backup action | "Create backup" |
 | Data backup saved | "Backup saved: {file}" |
+| Login passcode field | "Passcode" |
+| Login unlock action | "Unlock" / "Checking…" |
+| Login member picker | "Who's using this?" |
+| Login invalid passcode | "Invalid passcode." |
+| Login unknown member | "Unknown member." |
+| Login rate limited | "Too many attempts. Try again in a few minutes." |
+| Login wizard link | "First time here? Set up your household" |
+| Wizard household name | "Name your household" / "Household name" |
+| Wizard passcode | "Create a passcode" / "Confirm passcode" |
+| Wizard passcode too short | "Passcodes must be at least 4 characters." |
+| Wizard passcode mismatch | "Passcodes don't match." |
+| Wizard you | "Your name" / "Pick a color" |
+| Wizard seed | "Seed starter categories" / "Adds the default categories and 40 sample catalog items." |
+| Wizard store | "Add your first store" / "Store name" / "Icon" / "Or any emoji" |
+| Wizard finish | "Next" / "Back" / "Finish" / "Setting up…" / "Skip for now" |
+| Wizard exists | "A household already exists." |
+| Wizard sign-in link | "Already set up? Sign in" |
+| Settings title | "Settings" |
+| Settings household section | "Household" / "Name" / "Passcode" / "Change passcode" |
+| Settings members section | "Members" / "Add member" / "Edit" / "Remove {name}" |
+| Settings member remove confirm | "Remove {name} from the household? Their history stays." |
+| Settings theme section | "Theme" / "System" / "Light" / "Dark" |
+| Settings about section | "About" / "Kirana {version} ({revision})" |
+| Settings sign out | "Sign out" |
+| Coach-mark first add | "Tap + to add your first item" |
 
 * * *
 

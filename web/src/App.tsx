@@ -8,6 +8,8 @@ import { Stores } from './routes/Stores';
 import { Categories } from './routes/Categories';
 import { Data } from './routes/Data';
 import { Settings } from './routes/Settings';
+import { Login } from './routes/Login';
+import { Welcome } from './routes/Welcome';
 
 /** ScrollRestoration lives above every route so leaving Shop Mode restores
  * Home's scroll position on the way back (G15.4). */
@@ -26,6 +28,9 @@ export const router = createBrowserRouter([
     children: [
       // §8.5: Shop Mode is full screen — no tab bar, no rail.
       { path: '/store/:id', element: <ShopMode /> },
+      // P4 auth screens: full screen, outside the nav shell (§7.6, §8.9).
+      { path: '/login', element: <Login /> },
+      { path: '/welcome', element: <Welcome /> },
       {
         element: <NavShell />,
         children: [

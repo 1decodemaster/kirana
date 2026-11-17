@@ -4,6 +4,7 @@ import type {
   AddListItemResponse,
   AliasMutationResponse,
   AdminBackupResponse,
+  AuthMembersResponse,
   BoardResponse,
   BulkCheckResponse,
   CategoriesResponse,
@@ -11,25 +12,36 @@ import type {
   ClearBoughtResponse,
   CreateAliasRequest,
   CreateCategoryRequest,
+  CreateHouseholdRequest,
+  CreateHouseholdResponse,
   CreateItemRequest,
+  CreateMemberRequest,
   CreateStoreRequest,
   DeletedResponse,
   GetItemResponse,
   GetItemsResponse,
+  HealthResponse,
+  HouseholdMutationResponse,
   ImportCommitRequest,
   ImportCommitResponse,
   ImportPreviewResponse,
   ItemMutationResponse,
   ListItemMutationResponse,
+  LoginRequest,
+  LoginResponse,
+  LogoutResponse,
+  MemberMutationResponse,
   MergeItemsRequest,
   MergeItemsResponse,
   PatchListItemRequest,
   StoreMutationResponse,
   UpdateCategoryRequest,
+  UpdateHouseholdRequest,
   UpdateItemRequest,
+  UpdateMemberRequest,
   UpdateStoreRequest,
 } from '@kirana/shared';
-import { del, get, patch, post, postForm } from './client.js';
+import { del, get, getRoot, patch, post, postForm } from './client.js';
 import {
   applyBulkCheck,
   applyCategorySortOrder,
@@ -581,5 +593,87 @@ export function useImportCommit() {
 export function useAdminBackup() {
   return useMutation({
     mutationFn: () => post<AdminBackupResponse>('/admin/backup'),
+  });
+}
+
+// ── Auth, household and members (P4: §7.6, ADR-0005) ─────────────────────
+
+export function useAuthMembers() {
+  return useMutation({
+    mutationFn: (passcode: string) => post<AuthMembersResponse>('/auth/members', { passcode }),
+  });
+}
+
+export function useLogin() {
+  return useMutation({
+    mutationFn: (input: LoginRequest) => post<LoginResponse>('/auth/login', input),
+  });
+}
+
+export function useLogout() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => post<LogoutResponse>('/auth/logout'),
+    onSuccess: () => {
+      queryClient.clear();
+    },
+  });
+}
+
+export function useCreateHousehold() {
+  return useMutation({
+    mutationFn: (input: CreateHouseholdRequest) =>
+      post<CreateHouseholdResponse>('/household', input),
+  });
+}
+
+export function usePatchHousehold() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: UpdateHouseholdRequest) =>
+      patch<HouseholdMutationResponse>('/household', input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: BOARD_KEY });
+    },
+  });
+}
+
+export function useCreateMember() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateMemberRequest) => post<MemberMutationResponse>('/members', input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: BOARD_KEY });
+    },
+  });
+}
+
+export function useUpdateMember() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: string; patch: UpdateMemberRequest }) =>
+      patch<MemberMutationResponse>(`/members/${input.id}`, input.patch),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: BOARD_KEY });
+    },
+  });
+}
+
+export function useDeleteMember() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => del<DeletedResponse>(`/members/${id}`),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: BOARD_KEY });
+    },
+  });
+}
+
+/** Public liveness read for the Settings about section (§8.1). */
+export function useHealth() {
+  return useQuery({
+    queryKey: ['health'],
+    queryFn: ({ signal }) => getRoot<HealthResponse>('/healthz', signal),
+    staleTime: Number.POSITIVE_INFINITY,
   });
 }

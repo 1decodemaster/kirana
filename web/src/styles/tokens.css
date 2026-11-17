@@ -57,6 +57,30 @@ body {
   }
 }
 
+/* §8.2: Settings can override the system scheme. Higher specificity than
+   the media query above, so these win whenever data-theme is present. */
+:root[data-theme='light'] {
+  color-scheme: light;
+  --color-bg: #ffffff;
+  --color-surface: #ffffff;
+  --color-fg: #111827;
+  --color-muted: #6b7280;
+  --color-border: #e5e7eb;
+  --color-accent: #4f46e5;
+  --color-accent-fg: #ffffff;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --color-bg: #0b0f19;
+  --color-surface: #111827;
+  --color-fg: #f3f4f6;
+  --color-muted: #9ca3af;
+  --color-border: #1f2937;
+  --color-accent: #818cf8;
+  --color-accent-fg: #0b0f19;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
