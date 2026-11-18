@@ -1,5 +1,13 @@
 # Kirana
 
+<div align="center">
+
+![kirana](https://raw.githubusercontent.com/1decodemaster/kirana/refs/heads/main/web/kirana-full-800.png)
+
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+
+</div>
+
 Self-hosted, installable web app for a single household's shopping board.
 One shared list per store, grouped by aisle, with a multilingual catalog so
 the second time you add "atta" it takes three taps.
